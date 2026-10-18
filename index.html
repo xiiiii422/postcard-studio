@@ -423,7 +423,8 @@ let photoCrop=null, cropFocus={x:.5,y:.5}, cropZoom=1;
 let currentGenKey=null;
 let forceFresh=false;
 let photoImg=null, photoAspect=1;
-let AI_OK=true;              // the real answer comes from /status, before the user can click anything
+let AI_OK=true;              // recognition available (SiliconFlow or GLM)
+let GEN_OK=true;             // AI image generation available (SiliconFlow only)
 // Declared up here on purpose: loadState() further down restores this now, and `let` sits in its
 // temporal dead zone until its own line runs - a restored 图生图 mode used to throw right through the
 // page initialisation.
@@ -992,16 +993,18 @@ function refreshAiUi(){
   // the banner and the framing ratio have to admit that instead of promising a 2:3 portrait.
   document.querySelectorAll('#patternChips .chip').forEach(ch=>{
     const ai=ch.querySelector('input').value!=='handdrawn';
-    ch.classList.toggle('chip-dim',ai&&!AI_OK);
-    ch.title=(!AI_OK&&ai)?'当前没有可用的 AI 密钥：选它会回落成矢量手绘横版卡':'';});
+    ch.classList.toggle('chip-dim',ai&&!GEN_OK);
+    ch.title=(!GEN_OK&&ai)?'AI 生图/风格化需要 SILICONFLOW_API_KEY；现在选中会回退成矢量手绘横版卡':'';});
   syncCropUI();
 }
 function refreshStatus(){
-fetch(API+'/status').then(r=>r.ok?r.json():null).then(j=>{
+  fetch(API+'/status').then(r=>r.ok?r.json():null).then(j=>{
   if(!j)return;
   AI_OK=!!(j.ai_key&&!j.blocked);
+  GEN_OK=!!(j.models&&j.models.generation);
   if(j.blocked)showBanner(j.blocked);
-  else if(!j.ai_key)showBanner('未检测到 AI 密钥：识别与 AI 生图不可用，选它们会自动改用矢量手绘引擎（横版 3:2）。在 app.py 同目录新建 .env，写入 SILICONFLOW_API_KEY=sk-… 后重启服务即可。');
+  else if(!j.ai_key)showBanner('未检测到 AI 密钥：识别与 AI 生图不可用，选它们会自动改用矢量手绘引擎（横版 3:2）。在 app.py 同目录新建 .env，写入 SILICONFLOW_API_KEY 或 GLM_API_KEY 后重启服务即可。');
+  else if(j.models&&!j.models.generation)showBanner('AI 识别可用（'+(j.models.vision||'GLM-4V')+'）；AI 生图/风格化需要 SILICONFLOW_API_KEY，相关选项会自动回退矢量手绘。','ok');
   else if(j.models)showBanner('AI 已就绪：识别 '+(j.models.vision||'-')+' · 风格化 '+(j.models.edit||'-'),'ok');
   refreshAiUi();
 }).catch(()=>{});}
@@ -1066,7 +1069,7 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
 function portraitCard(){
   const o=selectedOrient();
   if(o==='landscape')return false;
-  if(!isAI()||!AI_OK)return false;              // the vector fallback is landscape by design
+  if(!isAI()||!AI_OK||!GEN_OK)return false;     // the vector fallback is landscape by design
   return o==='portrait'||(o==='auto'&&photoAspect>1);
 }
 function cropAr(){return portraitCard()?(100/150):1.5;}

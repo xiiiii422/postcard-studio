@@ -45,6 +45,10 @@
 - `selftest.py` 不再依赖作者的示例照片：全新克隆没有 `photo-A.img` 时会自动生成一张合成样片。
 - 自检端口可用 `POSTCARD_TEST_PORT` 覆盖，避免并行跑测试时 5199 端口争用。
 - `find-python.ps1` 探测 5 个依赖（含 numpy）并尝试 `import app`；`.python-path` 用 UTF-8；解释器按版本号降序。
+- **AI 识别 provider 扩展**：没有 SiliconFlow 时可用 GLM-4V（`GLM_API_KEY`）识别照片，
+  DeepSeek 视觉作为最后兜底；AI 生图仍需要 SiliconFlow。`/status` 增加
+  `models.generation` / `vision_provider`，前端会区分"识别可用"和"生图可用"。
+- `POSTCARD_NO_AI=1` 可让自检/CI 忽略本地 `.env` 密钥，保证测试可复现。
 - 增加 `.gitignore`、`.gitattributes`、MIT LICENSE；回归脚本与历史日志归档进 `docs/` / `scripts/`。
 
 ### 未改 / 已知限制

@@ -57,16 +57,18 @@ python app.py
 
 ```powershell
 copy .env.example .env
-# 编辑 .env，填入 SILICONFLOW_API_KEY
+# 编辑 .env：识别至少配一个 key；AI 生图还需要 SILICONFLOW_API_KEY
 ```
 
-- 识别：`Qwen/Qwen3-VL-8B-Instruct`（免费额度）；
-- 风格化：`Qwen/Qwen-Image-Edit-2509`（img2img）；
-- 背景：`Kwai-Kolors/Kolors` 或 `Tongyi-MAI/Z-Image-Turbo`；
-- 兜底识别：DeepSeek 视觉（配置 `DEEPSEEK_API_KEY` 时启用）。
+- **识别（视觉）**：优先 SiliconFlow `Qwen/Qwen3-VL-8B-Instruct`（免费额度）；没有时用
+  GLM `glm-4v-flash`（`GLM_API_KEY`）；最后回退 DeepSeek 视觉（`DEEPSEEK_API_KEY`）。
+  GLM-4V 和 DeepSeek 也能单独启用识别，不需要 SiliconFlow。
+- **风格化 / 背景生成**：需要 SiliconFlow（`Qwen/Qwen-Image-Edit-2509`、`Kwai-Kolors/Kolors`、
+  `Tongyi-MAI/Z-Image-Turbo`）。没有 SiliconFlow 时这两个入口会自动回退矢量手绘，并在页面提示。
 
-没有密钥时所有 AI 入口自动跳过，识别/生成改用本地引擎；失败原因会写入响应的
-`ai_note` / `note` 并显示在页面上。
+没有可用密钥时所有 AI 入口自动跳过，识别/生成改用本地引擎；失败原因会写入响应的
+`ai_note` / `note` 并显示在页面上。`GET /status` 的 `models.generation` 会告诉前端
+当前是否支持 AI 生图。
 
 ## 项目结构
 

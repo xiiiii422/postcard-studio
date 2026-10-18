@@ -14,6 +14,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 QUICK = "--quick" in sys.argv
+os.environ["POSTCARD_NO_AI"] = "1"      # deterministic: ignore a developer's local .env API keys
 PORT = int(os.environ.get("POSTCARD_TEST_PORT", "5199"))   # never production 5179; override if busy
 BASE = "http://127.0.0.1:%d" % PORT
 

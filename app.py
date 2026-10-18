@@ -58,6 +58,10 @@ app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024   # refuse absurd uploads in
 
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 MODEL = "deepseek-v4-flash-vision-exp"
+# GLM-4V is a vision-capable, OpenAI-compatible fallback when SiliconFlow is not configured.
+# It is only used for photo understanding (recognition); image generation still needs SiliconFlow.
+GLM_VISION_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+GLM_VISION_MODEL = "glm-4v-flash"
 
 T2I_URL = "https://api.siliconflow.cn/v1/images/generations"
 T2I_MODEL = "Tongyi-MAI/Z-Image-Turbo"                  # T2I (text-to-image) for generic scene
@@ -118,6 +122,9 @@ def _dotenv(path):
 
 
 ENV = _dotenv(os.path.join(ROOT, ".env"))
+# Self-tests and CI must be deterministic even when a developer has a .env with real keys:
+# POSTCARD_NO_AI=1 makes every secret lookup return "", while host/port/threads still work.
+_NO_AI = os.environ.get("POSTCARD_NO_AI") == "1"
 
 
 def _cfg(name, default=""):
@@ -202,6 +209,8 @@ def cors(resp):
 
 def _secret(name, *fallbacks):
     """Resolve a key: process env > .env beside app.py > dsh credentials file."""
+    if _NO_AI:
+        return ""
     v = (os.environ.get(name) or ENV.get(name) or "").strip()
     if v:
         return v
@@ -215,9 +224,14 @@ def _secret(name, *fallbacks):
 # No cross-vendor fallback: the keys next door in credentials.yaml belong to DeepSeek/GLM and are
 # rejected by SiliconFlow with HTTP 401, so trying them only made the status lie about having a key.
 T2I_KEY = _secret("SILICONFLOW_API_KEY", "SILICONFLOW_KEY", "DSH_SILICONFLOW_KEY")
+GLM_KEY = _secret("GLM_API_KEY", "ZHIPU_API_KEY", "GLM_KEY")
+DEEPSEEK_KEY = _secret("DEEPSEEK_API_KEY")
+VISION_KEY = T2I_KEY or GLM_KEY
 if not T2I_KEY:
-    print("[明信片工坊] 未找到 SILICONFLOW_API_KEY（环境变量 / .env / credentials.yaml 都没有），" +
-          "AI 识别与图生图将自动回退为手绘模式。配置方法见 .env.example。")
+    print("[明信片工坊] 未找到 SILICONFLOW_API_KEY：图生图/背景生成将回退为手绘模式"
+          + ("；识别将使用 GLM-4V。" if GLM_KEY else "。"))
+if not (T2I_KEY or GLM_KEY):
+    print("[明信片工坊] 也未找到 GLM_API_KEY，照片识别不可用；配置方法见 .env.example。")
 
 
 _T2I_LAST = [0.0]
@@ -683,10 +697,10 @@ def analyze_photo(photo, desc=""):
     """Ask the vision model to read the photo and return design params.
     Saves tokens: downscales the image (~1280px) before sending and caches
     the result by image hash so the same photo is never re-analyzed."""
-    if not T2I_KEY:
-        note_ai("未配置 AI 密钥，无法识别图片元素；可手动点选元素或使用模板。")
-        return {}                                     # the free SiliconFlow VL model is the primary reader
-    key = _secret("DEEPSEEK_API_KEY")                 # optional fallback reader; SiliconFlow stays the primary
+    if not VISION_KEY:
+        note_ai("未配置视觉模型密钥（SILICONFLOW_API_KEY 或 GLM_API_KEY），无法识别图片元素；手动点选元素或使用模板不受影响。")
+        return {}
+    key = DEEPSEEK_KEY                            # optional last-resort reader (text-only on most accounts)
     # downscale to a capped size -> far fewer image tokens, still plenty for scene recognition
     im = photo.copy(); im.thumbnail((1024, 1024), Image.LANCZOS)
     buf = io.BytesIO(); im.save(buf, "JPEG", quality=80)
@@ -712,8 +726,14 @@ def analyze_photo(photo, desc=""):
               'Format: {"elements":[],"colors":["#...","#...","#..."],"title":"","date":null,"style":""}')
     if desc.strip():
         prompt += ' Theme description by the user: "' + desc.strip() + '". Use it to pick the scene and style.'
-    # Preferred: SiliconFlow Qwen3-VL (free, generous token cap); fallback DeepSeek (paid)
-    result = _vl_call(FREE_VISION, VISION_CHAT, T2I_KEY, prompt, b64, 1500)
+    # Preferred: SiliconFlow Qwen3-VL (free, generous token cap); then GLM-4V (works without
+    # SiliconFlow); DeepSeek is a last resort because its public models are text-only.
+    result = {}
+    if T2I_KEY:
+        result = _vl_call(FREE_VISION, VISION_CHAT, T2I_KEY, prompt, b64, 1500)
+    if not result and GLM_KEY:
+        # GLM-4V caps max_tokens at 1024 (1500 returns HTTP 400 code 1210).
+        result = _vl_call(GLM_VISION_MODEL, GLM_VISION_URL, GLM_KEY, prompt, b64, 1024)
     if not result and key:
         result = _vl_call(MODEL, DEEPSEEK_URL, key, prompt, b64, 900)
     # normalise element tags
@@ -1053,8 +1073,12 @@ def index():
 @app.route("/status")
 def status():
     """Let the page ask up front whether the AI models are usable, so it can say so before a click."""
-    return jsonify({"ai_key": bool(T2I_KEY), "blocked": _AI_BLOCKED[0] or "",
-                    "models": {"vision": FREE_VISION, "edit": IMGEDIT_MODEL,
+    return jsonify({"ai_key": bool(VISION_KEY), "blocked": _AI_BLOCKED[0] or "",
+                    "models": {"vision": FREE_VISION if T2I_KEY else GLM_VISION_MODEL,
+                               "vision_provider": "siliconflow" if T2I_KEY else ("glm" if GLM_KEY else ""),
+                               "generation": bool(T2I_KEY), "glm": bool(GLM_KEY),
+                               "deepseek": bool(DEEPSEEK_KEY),
+                               "edit": IMGEDIT_MODEL,
                                "free_bg": FREE_IMG_MODEL, "quality_bg": QUALITY_IMG_MODEL}})
 
 
