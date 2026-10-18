@@ -1,0 +1,68 @@
+# ===== secrets / local machine state =====
+.env
+.credentials.yaml
+.python-path
+*.pem
+*.key
+
+# ===== runtime =====
+__pycache__/
+*.py[cod]
+*.log
+*.err
+cache/
+_verify/
+_dbg/
+evidence/
+listing-outputs/
+bench/
+
+# ===== generated exports / screenshots =====
+postcard-*.png
+postcard-*.svg
+postcard-*.pdf
+svg-*.png
+field-front.png
+back-cover.png
+night-front2.png
+01-*.png
+03-*.png
+05-*.png
+06-*.png
+08-*.png
+09-*.png
+evidence-ui-top.png
+vision-test.png
+
+# ===== sample photos (privacy): not redistributed =====
+photo-A.img
+photo-B.img
+*.img
+
+# ===== bundled third-party material: not redistributed =====
+dsh-media-skills/
+dsh-media-skills.zip
+photo-to-zine-postcard/
+photo-to-zine-postcard.zip
+scenes-skill.SKILL.md
+design-image-spec.md
+readme-dsh-media-skills.md
+ref-postcard.jpg
+
+# ===== internal handover / audit notes and personal tooling =====
+交接报告.md
+交接报告-问题分析.md
+项目优化全记录.md
+setup-tunnel.ps1
+batch_listing.py
+evidence_ui.py
+
+# ===== fonts: MiSans is not redistributed here; see fonts/README.md =====
+fonts/*.ttf
+static/fonts/*.ttf
+
+# ===== editor / OS =====
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

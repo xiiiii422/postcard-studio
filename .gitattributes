@@ -1,0 +1,16 @@
+# Keep the Windows launchers CRLF even when the repository is checked out on
+# macOS/Linux (cmd.exe mis-parses LF-only .bat files with multi-byte text).
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.img binary

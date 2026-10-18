@@ -1,0 +1,31 @@
+# Postcard Studio / 明信片工坊 - runtime dependencies
+#
+#   python -m pip install -r requirements.txt
+#
+# Version floors are the builds this project was last verified against
+# (Python 3.14.3). Nothing here needs a hard upper pin: the project only touches
+# long-stable APIs of these five packages.
+
+# web layer: serves index.html + the /generate /export /bundle endpoints
+flask>=3.1
+
+# production WSGI server. Without it Flask's bundled dev server is used, which
+# is single-threaded: one 600dpi render would block every other request.
+waitress>=3.0
+
+# the whole bitmap renderer (make_postcard.py) is Pillow - ImageDraw, ImageFont,
+# ImageFilter, quantize(). Only APIs present since 9.1 are used (LANCZOS/BILINEAR
+# enums, textbbox), so 12.3 is the tested build rather than a hard requirement.
+pillow>=12.3
+
+# numpy accelerates the SVG vectorizer (make_postcard_svg.py): mask building,
+# counting and fragmentation measurement at high grid resolutions. The module
+# degrades gracefully to pure Python when numpy is absent; that path is slower
+# and automatically lowers the grid to keep memory bounded.
+numpy>=1.26
+
+# prepress PDFs: bleed, trim marks, A4 imposition and the CMYK colour path
+reportlab>=5.0
+
+# No other third-party imports exist. Photo understanding and image generation
+# go through urllib.request against the SiliconFlow HTTP API (see .env.example).
