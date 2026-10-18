@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Postcard Studio — web app.
-Upload a photo, pick elements, generate the postcard PNG.
-The deepseek-v4-flash-vision-exp model reads/decides design params (title,
-palette, motif, date); the deterministic vector engine renders the PNG.
+Upload a photo, choose a style/pattern, generate the postcard.
+A deterministic Pillow renderer produces PNG/PDF; the vector renderer produces
+editable SVG. AI is used only for image generation (image-to-image restyle and
+text-to-image backgrounds), not for element recognition.
 """
 import base64, io, json, os, sys, hashlib, time, threading, urllib.request, warnings
 from collections import OrderedDict
@@ -56,20 +57,11 @@ import make_postcard as M
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024   # refuse absurd uploads instead of exhausting RAM
 
-DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
-MODEL = "deepseek-v4-flash-vision-exp"
-# GLM-4V is a vision-capable, OpenAI-compatible fallback when SiliconFlow is not configured.
-# It is only used for photo understanding (recognition); image generation still needs SiliconFlow.
-GLM_VISION_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-GLM_VISION_MODEL = "glm-4v-flash"
-
 T2I_URL = "https://api.siliconflow.cn/v1/images/generations"
 T2I_MODEL = "Tongyi-MAI/Z-Image-Turbo"                  # T2I (text-to-image) for generic scene
 IMGEDIT_MODEL = "Qwen/Qwen-Image-Edit-2509"              # image-to-image: preserves the photo, only restyles (reliable)
 FREE_IMG_MODEL = "Kwai-Kolors/Kolors"                    # media-tools skill: free background generation (文生图)
 QUALITY_IMG_MODEL = "Tongyi-MAI/Z-Image-Turbo"           # higher-quality text-to-image (commercial, cost-effective)
-VISION_CHAT = "https://api.siliconflow.cn/v1/chat/completions"
-FREE_VISION = "Qwen/Qwen3-VL-8B-Instruct"               # free vision (recognition), generous token cap
 
 
 def cred_candidates():
@@ -221,17 +213,11 @@ def _secret(name, *fallbacks):
     return ""
 
 
-# No cross-vendor fallback: the keys next door in credentials.yaml belong to DeepSeek/GLM and are
-# rejected by SiliconFlow with HTTP 401, so trying them only made the status lie about having a key.
+# AI is used for image generation only (image-to-image restyle / text-to-image backgrounds).
 T2I_KEY = _secret("SILICONFLOW_API_KEY", "SILICONFLOW_KEY", "DSH_SILICONFLOW_KEY")
-GLM_KEY = _secret("GLM_API_KEY", "ZHIPU_API_KEY", "GLM_KEY")
-DEEPSEEK_KEY = _secret("DEEPSEEK_API_KEY")
-VISION_KEY = T2I_KEY or GLM_KEY
 if not T2I_KEY:
-    print("[明信片工坊] 未找到 SILICONFLOW_API_KEY：图生图/背景生成将回退为手绘模式"
-          + ("；识别将使用 GLM-4V。" if GLM_KEY else "。"))
-if not (T2I_KEY or GLM_KEY):
-    print("[明信片工坊] 也未找到 GLM_API_KEY，照片识别不可用；配置方法见 .env.example。")
+    print("[明信片工坊] 未找到 SILICONFLOW_API_KEY：AI 图生图/背景生成不可用，"
+          "会回退为本地矢量渲染；配置方法见 .env.example。")
 
 
 _T2I_LAST = [0.0]
@@ -540,7 +526,7 @@ def get_ai_image(r, photo, desc=""):
                 return note_ai(_AI_BLOCKED[0])
             print("aibg text-to-image failed -> img2img of the photo:", str(e)[:100])
             return safe_t2i(t2i_prompt(r, desc), genKey, photo, fresh, orient)
-    if pattern == "t2i":
+    if pattern in ("t2i", "photo"):
         return safe_t2i(t2i_prompt(r, desc), genKey, photo, fresh, orient)
     return None
 
@@ -614,153 +600,6 @@ def safe_t2i(prompt, genKey=None, photo=None, fresh=False, orient="auto"):
         return note_ai("AI 生成未成功（%s），已改用矢量手绘引擎。" % str(e)[:80])
 
 
-def hex_to_rgb(h):
-    h = h.lstrip("#")
-    if len(h) != 6:
-        return (90, 90, 95)
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-
-def norm_elements(elems):
-    if isinstance(elems, list):
-        return [str(x).strip().lower() for x in elems if isinstance(x, str) and str(x).strip()]
-    if isinstance(elems, str):
-        s = elems.strip()
-        if s.startswith("["):
-            try:
-                arr = json.loads(s)
-                return [str(x).strip().lower() for x in arr if isinstance(x, str)]
-            except Exception:
-                pass
-        return [t.strip().lower() for t in s.split(",") if t.strip()]
-    return []
-
-
-import hashlib
-_ANALYZE_CACHE = {}   # sha256 -> last analyze result (same image reused, saves a vision call)
-ANALYZE_CACHE_DIR = os.path.join(ROOT, "cache", "analyze")
-
-
-def _analyze_disk_get(sha):
-    p = os.path.join(ANALYZE_CACHE_DIR, sha + ".json")
-    if os.path.exists(p):
-        try:
-            with open(p, "r", encoding="utf-8") as fh:
-                d = json.load(fh)
-            if isinstance(d, dict) and d:
-                return d
-        except Exception:
-            pass
-    return None
-
-
-def _analyze_disk_put(sha, result):
-    try:
-        os.makedirs(ANALYZE_CACHE_DIR, exist_ok=True)
-        with open(os.path.join(ANALYZE_CACHE_DIR, sha + ".json"), "w", encoding="utf-8") as fh:
-            json.dump(result, fh, ensure_ascii=False)
-    except Exception:
-        pass
-
-
-def _vl_call(model, url, key, prompt, b64, max_tokens):
-    """One robust OpenAI-compatible vision call -> parsed design JSON dict."""
-    payload = {"model": model, "messages": [{"role": "user", "content": [
-        {"type": "text", "text": prompt},
-        {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + b64}}]}], "max_tokens": max_tokens}
-    for attempt in range(2):
-        try:
-            req = urllib.request.Request(url, data=json.dumps(payload).encode(),
-                                         headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
-            with urllib.request.urlopen(req, timeout=90) as r:
-                data = json.loads(r.read())
-            content = data["choices"][0]["message"]["content"] or ""
-            if "```" in content:
-                content = content.split("```")[1] if content.count("```") >= 2 else content.split("```")[-1]
-            start = content.find("{"); end = content.rfind("}")
-            if 0 <= start < end:
-                return json.loads(content[start:end+1])
-            elif start >= 0:
-                depth = 0; end2 = -1
-                for i in range(start, len(content)):
-                    ch = content[i]
-                    if ch == '{': depth += 1
-                    elif ch == '}':
-                        depth -= 1
-                        if depth == 0: end2 = i; break
-                if end2 > start:
-                    return json.loads(content[start:end2+1])
-        except Exception as e:
-            print("analyze attempt", attempt, "failed:", str(e)[:100])
-    return {}
-
-
-def analyze_photo(photo, desc=""):
-    """Ask the vision model to read the photo and return design params.
-    Saves tokens: downscales the image (~1280px) before sending and caches
-    the result by image hash so the same photo is never re-analyzed."""
-    if not VISION_KEY:
-        note_ai("未配置视觉模型密钥（SILICONFLOW_API_KEY 或 GLM_API_KEY），无法识别图片元素；手动点选元素或使用模板不受影响。")
-        return {}
-    key = DEEPSEEK_KEY                            # optional last-resort reader (text-only on most accounts)
-    # downscale to a capped size -> far fewer image tokens, still plenty for scene recognition
-    im = photo.copy(); im.thumbnail((1024, 1024), Image.LANCZOS)
-    buf = io.BytesIO(); im.save(buf, "JPEG", quality=80)
-    img_bytes = buf.getvalue()
-    sha = hashlib.sha256(img_bytes + ("|" + desc.strip()).encode()).hexdigest()
-    if sha in _ANALYZE_CACHE:
-        return _ANALYZE_CACHE[sha]
-    disk = _analyze_disk_get(sha)
-    if disk:
-        _ANALYZE_CACHE[sha] = disk
-        return disk
-    b64 = base64.b64encode(img_bytes).decode()
-    prompt = ('Return JSON only: "elements" (array of everything clearly visible or the scene, from: '
-              'mountain peak cliff rock forest tree plant flower water sea ocean lake river beach coast sky cloud mist fog '
-              'snow ice sun moon star bird boat ship sailboat building bridge city person road street car bus train '
-              'sunset sunrise dawn night morning storm rainbow reflection aurora firework celebration grass field meadow '
-              'stadium goal soccer football playground market tent festival crowd lamp wall door window shop sign '
-              'tower clock bridge port pier dock fence railing bench tree trunk bush shrub petal fruit vegetable food '
-              'table chair streetlight flag kite balloon tent canopy umbrella), plus a few short custom tags that best '
-              'describe the scene/subject (e.g. "stadium","night soccer","empty field"), "colors" (3 hex dominant/dark/pale), '
-              '"title" (short English), "date" (EXIF YYYY-MM-DD or null), '
-              '"style" (watercolor ink minimal vintage pastel film oil handdrawn). '
-              'Format: {"elements":[],"colors":["#...","#...","#..."],"title":"","date":null,"style":""}')
-    if desc.strip():
-        prompt += ' Theme description by the user: "' + desc.strip() + '". Use it to pick the scene and style.'
-    # Preferred: SiliconFlow Qwen3-VL (free, generous token cap); then GLM-4V (works without
-    # SiliconFlow); DeepSeek is a last resort because its public models are text-only.
-    result = {}
-    if T2I_KEY:
-        result = _vl_call(FREE_VISION, VISION_CHAT, T2I_KEY, prompt, b64, 1500)
-    if not result and GLM_KEY:
-        # GLM-4V caps max_tokens at 1024 (1500 returns HTTP 400 code 1210).
-        result = _vl_call(GLM_VISION_MODEL, GLM_VISION_URL, GLM_KEY, prompt, b64, 1024)
-    if not result and key:
-        result = _vl_call(MODEL, DEEPSEEK_URL, key, prompt, b64, 900)
-    # normalise element tags
-    result["elements"] = norm_elements(result.get("elements", []))
-    # normalise style to the allowed set (model may return free-text styles)
-    allowed = {"watercolor", "ink", "minimal", "vintage", "pastel", "film", "oil", "handdrawn"}
-    st = str(result.get("style", "")).strip().lower()
-    if st and st not in allowed:
-        if "water" in st: st = "watercolor"
-        elif "ink" in st or "chinese" in st: st = "ink"
-        elif "vintage" in st or "retro" in st: st = "vintage"
-        elif "pastel" in st or "soft" in st: st = "pastel"
-        elif "film" in st or "cinema" in st: st = "film"
-        elif "oil" in st or "painting" in st: st = "oil"
-        elif "hand" in st: st = "handdrawn"
-        else: st = "minimal"
-        result["style"] = st
-    if result or sha in _ANALYZE_CACHE:
-        if len(_ANALYZE_CACHE) > 60:
-            _ANALYZE_CACHE.pop(next(iter(_ANALYZE_CACHE)))
-        _ANALYZE_CACHE[sha] = result
-        _analyze_disk_put(sha, result)
-    return result
-
-
 STYLE_KEYWORDS = [
     ("watercolor", "watercolor"), ("水彩", "watercolor"),
     ("ink", "ink"), ("水墨", "ink"), ("墨", "ink"),
@@ -822,28 +661,11 @@ def resolve(photo, options):
     palette = M.sample_palette(photo)
     user_date = (options.get("date") or "").strip()      # a date the UI/API supplied wins over EXIF
     date_str = user_date or M.read_date(photo)
-    user_title = (options.get("title") or "").strip()
-    title = user_title or "UNTITLED"
+    title = (options.get("title") or "").strip() or "UNTITLED"
     number = (options.get("number") or "").strip()
-    user_elements = _json_list(options.get("elements"))
-    elements = user_elements
+    elements = _json_list(options.get("elements"))
     extra = _json_list(options.get("extra"))
     layout = _clean_layout(options.get("layout"))
-
-    if options.get("use_ai") == "1":
-        try:
-            ai = analyze_photo(photo, options.get("desc", ""))
-            # Only fill what the user left empty: the AI used to overwrite a hand-picked title,
-            # element list, date and palette without any notice.
-            if ai.get("title") and not user_title: title = ai["title"]
-            if ai.get("colors") and len(ai["colors"]) == 3:
-                palette = [hex_to_rgb(c) for c in ai["colors"]]
-            if ai.get("date") and not date_str: date_str = ai["date"]
-            if ai.get("elements") and not user_elements: elements = ai["elements"]
-            if ai.get("style") and not options.get("style"):
-                options["style"] = ai["style"]
-        except Exception as e:
-            print("ai analyze failed:", e)
 
     # merge user custom tags so the design isn't limited to the built-in themes
     raw_tags = (options.get("tags") or "").strip()
@@ -1074,13 +896,9 @@ def index():
 
 @app.route("/status")
 def status():
-    """Let the page ask up front whether the AI models are usable, so it can say so before a click."""
-    return jsonify({"ai_key": bool(VISION_KEY), "blocked": _AI_BLOCKED[0] or "",
-                    "models": {"vision": FREE_VISION if T2I_KEY else GLM_VISION_MODEL,
-                               "vision_provider": "siliconflow" if T2I_KEY else ("glm" if GLM_KEY else ""),
-                               "generation": bool(T2I_KEY), "glm": bool(GLM_KEY),
-                               "deepseek": bool(DEEPSEEK_KEY),
-                               "edit": IMGEDIT_MODEL,
+    """Tell the page whether AI image generation is available before the user clicks."""
+    return jsonify({"ai_key": bool(T2I_KEY), "blocked": _AI_BLOCKED[0] or "",
+                    "models": {"generation": bool(T2I_KEY), "edit": IMGEDIT_MODEL,
                                "free_bg": FREE_IMG_MODEL, "quality_bg": QUALITY_IMG_MODEL}})
 
 
@@ -1094,7 +912,7 @@ def photo_too_large(_e):
     return jsonify({"error": "图片像素过多（上限 5000 万像素），请先缩小后再上传。"}), 413
 
 
-OPTION_KEYS = ("title", "number", "use_ai", "elements", "extra", "style", "desc", "swatches", "show_date",
+OPTION_KEYS = ("title", "number", "elements", "extra", "style", "desc", "swatches", "show_date",
                "date", "want_back", "layout", "paper_skin", "tfont", "rounded", "filt", "location", "tstyle",
                "enhance", "crop", "tags", "pattern", "genkey", "glass_a", "glass_b", "fresh",
                "bg_mode", "bg_model", "orient")
@@ -1108,26 +926,6 @@ EXPORT_KINDS = ("front-pdf", "front-hi", "back-pdf", "back-hi", "sheet-pdf", "sh
 def pick_options(src):
     """Whitelist the form fields both /generate, /export and /bundle accept."""
     return {k: v for k in OPTION_KEYS if (v := src.get(k)) is not None}
-
-
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    f = request.files.get("photo")
-    if not f:
-        return jsonify({"error": "no photo"}), 400
-    try:
-        photo = load_photo(f)                       # EXIF-aware, same as /generate, so rotation cannot drift
-        _AI_NOTE.v = _AI_BLOCKED[0]                # say up front why recognition is unavailable
-        r = analyze_photo(photo, request.form.get("desc", ""))
-        return jsonify({"elements": r.get("elements", []), "colors": r.get("colors", []),
-                        "title": r.get("title", ""), "date": r.get("date"), "style": r.get("style", ""),
-                        "note": ai_note()})
-    except PhotoTooLarge:
-        raise
-    except Exception:
-        import traceback; traceback.print_exc()
-        return jsonify({"elements": [], "colors": [], "title": "", "date": None, "style": "",
-                        "error": "图片识别失败，请稍后重试。"})
 
 
 @app.route("/generate", methods=["POST"])
@@ -1191,14 +989,23 @@ def export():
             import zipfile as _zf
             ph = _face(r, photo)                       # crop + enhance, same pixels as preview
             ratio = ph.size[1] / ph.size[0]
-            pal = SVG.sample_palette(ph)
-            href = SVG.embed(ph)
+            # The art panel must use the SAME artwork as the PNG/PDF previews. For AI patterns
+            # that means vectorising the image-to-image result, not the untouched photo.
+            art_src = ph
+            note = ""
+            if (r.get("pattern") or "handdrawn") != "handdrawn":
+                ai = get_ai_image(r, ph, options.get("desc", ""))
+                if ai is not None:
+                    art_src = ai.convert("RGB")
+                note = ai_note()
+            pal = SVG.sample_palette(art_src)
+            href = SVG.embed(ph)                       # photo box keeps the real photo
             dstr = r["date_str"] if r["show_date"] else ""
             kwargs = dict(paper=r.get("paper"), tfont=r.get("tfont"), location=r.get("location", ""),
                           style=r.get("style", "default"), swatches=r.get("swatches", True),
                           tstyle=r.get("tstyle", "normal"))
             orient = (r.get("orient") or "auto")
-            front = SVG.front_svg(href, pal, r["title"], dstr, ph_ratio=ratio, orient=orient, photo=ph, **kwargs)
+            front = SVG.front_svg(href, pal, r["title"], dstr, ph_ratio=ratio, orient=orient, photo=art_src, **kwargs)
             # Only build the writing side when the ZIP will contain it: a back_svg failure must not
             # break a front-only download.
             back = None
@@ -1211,6 +1018,8 @@ def export():
                 z.writestr("postcard-front.svg", front)
                 if back is not None:
                     z.writestr("postcard-back.svg", back)
+                if note:
+                    z.writestr("ai_note.txt", note)    # why AI art was unavailable / what happened
             buf.seek(0)
             return send_file(buf, mimetype="application/zip", as_attachment=True, download_name=stem + "-vector.svg.zip")
         if kind == "wallpaper":

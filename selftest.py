@@ -602,7 +602,7 @@ for label, blob in (("PDF 出血+裁剪线", app.build_print_pdf(front)),
 
 
 # ============================ B. HTTP 端到端（进程内起服务）============================
-FIELDS = {"title": "烟雾 & 测试", "number": "N° 01", "use_ai": "0", "want_back": "1",
+FIELDS = {"title": "烟雾 & 测试", "number": "N° 01", "want_back": "1",
           "style": "watercolor", "paper_skin": "ivory", "tfont": "cjk_song", "tstyle": "normal",
           "filt": "none", "rounded": "1", "show_date": "1", "swatches": "1", "enhance": "1",
           "pattern": "handdrawn", "orient": "auto", "elements": '["mountain","clouds","sun"]',
@@ -649,8 +649,6 @@ try:
     st = call("/status")
     check("/status 结构", set(st) == {"ai_key", "blocked", "models"}, "ai_key=%s（未配密钥时预期 False）" % st["ai_key"])
     check("/ 返回前端", b"styleNote" in call("/"))
-    a = call("/analyze", {})
-    check("/analyze 无密钥不报错", a.get("error") is None and a.get("note"), (a.get("note") or "")[:34])
 
     g = call("/generate", FIELDS)
     check("/generate 正+背", len(g["front"]) > 4000 and len(g["back"]) > 4000, "%.1fKB/%.1fKB" % (len(g["front"]) / 1024, len(g["back"]) / 1024))
@@ -666,6 +664,33 @@ try:
         check("无密钥降级诚实 %s/%s" % (_pat, _bg or "-"), len(j["front"]) > 4000
               and "未配置" in note and "拒绝" not in note, note[:36])
     check("空密钥不应误发 401 熔断", not call("/status")["blocked"], "blocked 必须为空")
+
+    # SVG export must vectorise the AI image-to-image artwork, not the untouched photo.
+    import re as _re
+    _ai_src = Image.new("RGB", (640, 640), (220, 20, 180))
+    ImageDraw.Draw(_ai_src).rectangle([160, 160, 480, 480], fill=(20, 200, 90))
+    _orig_get_ai = app.get_ai_image
+    app.get_ai_image = lambda r, photo, desc="": _ai_src
+    try:
+        f = dict(FIELDS); f.update(kind="svg", pattern="photo", want_back="0")
+        _blob = call("/export", f)
+        _zf = zipfile.ZipFile(io.BytesIO(_blob))
+        _front = _zf.read("postcard-front.svg").decode("utf-8")
+
+        def _near(hexstr, target, tol=70):
+            h = hexstr.lstrip("#")
+            if len(h) != 6: return False
+            return sum((int(h[i:i+2], 16) - target[i // 2]) ** 2 for i in (0, 2, 4)) ** 0.5 < tol
+
+        _fills = set(_re.findall(r'fill="(#[0-9a-fA-F]{6})"', _front))
+        check("SVG 画区使用图生图结果",
+              any(_near(h, (220, 20, 180)) for h in _fills) and any(_near(h, (20, 200, 90)) for h in _fills),
+              "fills=%s" % sorted(_fills)[:6])
+    finally:
+        app.get_ai_image = _orig_get_ai
+    f = dict(FIELDS); f.update(kind="svg", pattern="photo", want_back="0")
+    _zf = zipfile.ZipFile(io.BytesIO(call("/export", f)))
+    check("SVG 无 AI 时附 ai_note.txt", "ai_note.txt" in _zf.namelist(), _zf.namelist())
 
     for kind, ext, n in (("pngset", ".png", 3), ("svg", ".svg", 2), ("bundle", None, None),
                          ("print-cmyk", ".pdf", None), ("wallpaper", None, None), ("front-pdf", ".pdf", None)):
@@ -864,7 +889,7 @@ def chip_silent_setters(src):
     return bad
 
 
-TEXT_FIELDS = ("title", "location", "desc", "tags", "glassA", "glassB", "cropZoom")
+TEXT_FIELDS = ("title", "location", "desc", "tags", "glassA", "glassB", "cropZoom", "date", "number")
 
 
 def silent_text_writes(src):
@@ -997,27 +1022,6 @@ def drop_problems(src):
     return bad
 
 
-def floating_overlay_problems(src):
-    """A position:fixed pill is painted above everything, and on a phone the content is exactly as
-    wide as the screen. Measured at 390px: the countdown pill had two option chips sitting under it
-    and took their taps - the chip looked fine and never received anything, because the element the
-    browser found under the finger was the pill. Either the overlay yields (pointer-events:none) or
-    the content gets out of the way (bottom padding); this page does both, and the rule below is the
-    only thing that keeps the choice from being undone by the next cosmetic edit."""
-    css = _css_of(src)
-    # one media query per line, which is how this stylesheet is written; `.*` never crosses a newline
-    lines = [b for b in re.findall(r"@media[^{]*\{(.*)", css) if ".peak-hint" in b]
-    if not lines:
-        return ["窄屏下没有任何针对浮层的规则"]
-    block = " ".join(lines)
-    bad = []
-    if "pointer-events:none" not in block:
-        bad.append("浮层仍会接管点击")
-    if "padding-bottom" not in block:
-        bad.append("页面底部没给浮层留位")
-    return bad
-
-
 def drag_capture_problems(src):
     """A surface that binds pointerdown + pointermove is a drag surface, and a drag that never
     captures its pointer is not finished when the user lets go - it is finished whenever the cursor
@@ -1049,24 +1053,6 @@ def drag_capture_problems(src):
         if "pointercancel" not in handlers and "window.addEventListener('pointerup'" not in js:
             bad.append("%s 的手势没有兜底收尾" % target)
     return bad
-
-
-def nav_goto_problems(src):
-    """setMode() rewrites the `data-goto` of the 下一步 / 上一步 buttons so 图生图 can hop over the
-    recognition step. Finding those buttons BY that attribute is self-defeating: the first call changes
-    it to "3", so the next call can no longer locate the button to change it back, and the stepper is
-    left jumping 1 -> 3 for the rest of the session - visible only after someone has used one mode
-    once, which is how it hid for so long.
-
-    Only the descendant form is the trap. `.step[data-step="1"] [data-goto="2"]` reaches into a .nav
-    row to pick a button out of it by a value the code then overwrites, while `.s-step[data-goto="2"]`
-    names a stepper pill, whose `data-goto` IS its meaning (the generic click handler navigates by it)
-    and nothing ever rewrites. So: flag `data-goto` used as a descendant filter."""
-    js = _js_of(src)
-    if not re.search(r"dataset\.goto\s*=", js):
-        return []
-    return [m.group(1) for m in re.finditer(r"""querySelector(?:All)?\(\s*(['"])(.*?)\1""", js)
-            if ' [data-goto=' in m.group(2)]
 
 
 def unreachable_chips(src):
@@ -1119,8 +1105,6 @@ _owner = chip_state_owners(html)
 check("chip 高亮只有一个拥有者", not _owner, "click 里又设 checked 又 paint .on 的行：%d" % len(_owner))
 _silent = chip_silent_setters(html)
 check("程序化改选项都广播 change", not _silent, "; ".join(_silent) or "setter 均走 announce()")
-_goto = nav_goto_problems(html)
-check("导航按钮不用可改写属性定位", not _goto, "用 [data-goto=…] 当后代过滤的选择器：%s" % (_goto or "无"))
 _unreach = unreachable_chips(html)
 check("chip 都是可聚焦控件", not _unreach, "没有 input 的 label 式 chip：%s" % (_unreach or "无"))
 _txt = silent_text_writes(html)
@@ -1137,8 +1121,6 @@ _touch = touch_target_problems(html)
 check("命中区域写成规则而非副作用", not _touch, "; ".join(_touch) or "滑杆 ≥24px、按钮不靠内联 padding")
 _drop = drop_problems(html)
 check("上传区能键盘开、拖得进", not _drop, "; ".join(_drop) or "窗口级兜底 + 区域收图 + Enter/Space")
-_float = floating_overlay_problems(html)
-check("窄屏浮层不抢点击", not _float, "; ".join(_float) or "胶囊让位 + 底部留高")
 _dragcap = drag_capture_problems(html)
 check("拖拽面捕获指针并为手势兜底", not _dragcap,
       "; ".join(_dragcap) or "两个画布都 setPointerCapture + 窗口级收尾")
@@ -1176,12 +1158,6 @@ check("检查器自检：高亮拥有者", _owner == [] and len(chip_state_owner
 _bad_silent = html + "\n<script>function zz(){q.checked=true;zzpaint(q);}</script>"
 check("检查器自检：静默改选项", _silent == [] and len(chip_silent_setters(_bad_silent)) == 1,
       "干净文件 0 行 / 补一行不广播的 setter 后抓到 %d 行" % len(chip_silent_setters(_bad_silent)))
-_bad_goto = html.replace("""querySelector('[data-nav="1-next"]')""",
-                        """querySelector('.step[data-step="1"] [data-goto="2"]')""" 
-                  ).replace("""querySelector('[data-nav="3-prev"]')""",
-                        """querySelector('.step[data-step="3"] [data-goto="2"]')""")
-check("检查器自检：导航定位", _goto == [] and len(nav_goto_problems(_bad_goto)) == 2,
-      "干净文件 0 个 / 退回旧写法后抓到 %d 个" % len(nav_goto_problems(_bad_goto)))
 _bad_reach = html.replace('<button type="button" class="chip" data-p="city">城市街景</button>',
                           '<label class="chip" data-p="city">城市街景</label>')
 check("检查器自检：chip 可聚焦", _unreach == [] and unreachable_chips(_bad_reach) != [],
@@ -1227,10 +1203,6 @@ _bad_drop = html.replace("window.addEventListener('dragover',e=>e.preventDefault
 _bad_drop = _bad_drop.replace('<div class="drop" id="drop" tabindex="0"', '<div class="drop" id="drop"')
 check("检查器自检：上传区", _drop == [] and len(drop_problems(_bad_drop)) == 2,
       "干净文件 0 项 / 去掉窗口兜底与 tabindex 后抓到 %d 项" % len(drop_problems(_bad_drop)))
-_bad_float = html.replace(".peak-hint{pointer-events:none;right:10px",
-                          ".peak-hint{right:10px")
-check("检查器自检：浮层抢点击", _float == [] and floating_overlay_problems(_bad_float) == ["浮层仍会接管点击"],
-      "干净文件 0 项 / 拿掉 pointer-events 后抓到 %s" % (floating_overlay_problems(_bad_float) or "无"))
 _bad_cap = html.replace("try{edCv.setPointerCapture(e.pointerId);}catch(_){}", "")
 _bad_end = (html.replace("edCv.addEventListener('pointercancel',edEndDrag);\n", "")
             .replace("window.addEventListener('pointerup',edEndDrag);\n", "")

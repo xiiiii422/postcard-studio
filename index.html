@@ -6,239 +6,195 @@
 <title>Postcard Studio · 明信片工坊</title>
 <style>
 @font-face{font-family:'MiSans';src:url('/static/fonts/MiSans-Regular.subset.ttf') format('truetype');font-weight:normal;font-display:swap}
-:root{--blue:#3b7fd4;--ink:#383a3e;--muted:#6b6d70;--line:#e7e2d8}
+:root{--blue:#3b7fd4;--ink:#383a3e;--muted:#6b6d70;--line:#e7e2d8;--paper:#f2efe9;--card:#fff}
 *{box-sizing:border-box}
-body{font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:#f2efe9;color:var(--ink);margin:0;padding:20px;line-height:1.5}
-header{max-width:960px;margin:0 auto 18px}
-header h1{font-size:26px;font-weight:700;margin:0 0 4px;letter-spacing:.5px}
-header .sub{color:var(--muted);font-size:14px;margin-bottom:12px}
-.stepper{display:flex;gap:8px;flex-wrap:wrap}
-.s-step{border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px;color:var(--muted);transition:.2s}
-.s-step i{font-style:normal;font-weight:700;margin-right:6px;color:var(--blue)}
-.s-step.active{background:var(--blue);color:#fff}
-.s-step.active i{color:#fff}
-.steps{max-width:960px;margin:0 auto}
-/* Inactive steps used to be `position:absolute;opacity:0`, so they still painted: the page grew a
-   ~770px dead area below the content and both desktop and phone got a horizontal scrollbar from the
-   translateX(14px). `display:none` costs nothing to lay out; the fade is now an entry animation. */
-.step{display:none}
-.step.active{display:block;animation:stepIn .28s ease}
-@keyframes stepIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.04);margin-bottom:14px}
+html{scroll-behavior:smooth}
+body{font-family:"Segoe UI",system-ui,-apple-system,"Microsoft YaHei",sans-serif;background:var(--paper);color:var(--ink);margin:0;padding:20px;line-height:1.5}
+[hidden]{display:none !important}
+.app-head{max-width:1280px;margin:0 auto 14px}
+.head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand h1{font-size:24px;font-weight:700;margin:0;letter-spacing:.4px}
+.brand .en{font-size:13px;color:var(--muted);font-weight:400;letter-spacing:.5px}
+.app-head .banner{margin-top:10px}
+.step-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.step-nav a{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 14px;font-size:13px;color:var(--muted);text-decoration:none;transition:.2s}
+.step-nav a i{font-style:normal;font-weight:700;color:var(--blue)}
+.step-nav a:hover{border-color:var(--blue);color:var(--ink)}
+.step-nav a[aria-current="step"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.step-nav a[aria-current="step"] i{color:#fff}
+.step-nav a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.workspace{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(400px,500px);gap:24px;align-items:start}
+.controls,.preview-col{min-width:0}
+.preview-col{position:sticky;top:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.04);margin-bottom:14px}
 .card h2{margin:0 0 12px;font-size:18px;font-weight:700}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.section-head h2{margin:0}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:13px;color:var(--muted);margin:8px 0 5px}
-.field input[type=text],.field textarea{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#faf8f4}
+.field input[type=text],.field textarea,.field-row input[type=text]{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;outline:none;font-family:inherit;background:#faf8f4}
 .field textarea{min-height:54px;resize:vertical}
-/* 原生滑杆的盒子只有 16px 高。手机上这是「十次里有几次点不中」的量级——实测：中线上下各 8px 已经
-   落到外层 div 上，不属于控件本身。浏览器命中测试用的是元素盒子，所以把盒子抬到 28px 只是让抓取
-   范围变大，轨道和滑块的样子一个像素都没变（放大截图前后对照过）。 */
 input[type=range]{height:28px}
-.drop{border:2px dashed #c6bFa8;border-radius:14px;padding:34px;text-align:center;color:var(--muted);cursor:pointer;background:#fbf9f5;transition:border-color .2s,background .2s}
+.drop{border:2px dashed #c6bfa8;border-radius:14px;padding:34px;text-align:center;color:var(--muted);cursor:pointer;background:#fbf9f5;transition:border-color .2s,background .2s}
 .drop:hover{border-color:var(--blue)}
-/* 拖进来时得有个响应：没有高亮，用户不知道松手会不会被接住。 */
 .drop.hot{border-color:var(--blue);background:#f4eee2}
 .drop img{max-width:220px;max-height:280px;border-radius:8px;margin-top:10px}
-.swatches{display:flex;gap:8px;margin-top:10px}
-.swatches span{width:34px;height:34px;border-radius:50%;border:1px solid #ddd}
+.photo-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .opt{display:flex;flex-wrap:wrap;gap:7px}
 .chip{border:1px solid var(--line);background:#faf8f4;border-radius:18px;padding:6px 12px;font-size:13px;cursor:pointer;user-select:none;transition:.15s;position:relative}
-/* The 模板 chips are <button>, not <label>: a label with no input behind it is unreachable - no tab
-   stop, no Enter/Space, and the accessibility tree shows it as plain text. `font-family` and colour
-   have to be restated because a button does not inherit them, which would otherwise quietly swap the
-   whole template row to the system UI font. */
 button.chip{font-family:inherit;color:inherit;text-align:left;line-height:1.4}
 button.chip:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-/* `display:none` on the wrapped input took the whole option surface out of the tab order: every
-   choice on this page (mode / pattern / orientation / style / paper / font / filter / elements) was
-   mouse-only. Keep it invisible but laid out, so it stays focusable and announced; `position:relative`
-   above keeps the 1px box next to its label instead of at the head of the document. */
 .chip input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .chip:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
-/* 文本框的基础样式里写了 outline:none，而上一轮只给 chip / button 补回了焦点框：四个文本字段
-   （标题 / 地点 / 描述 / 存档名）和两个可键盘打开的预览图、上传框，焦点落上去仍然看不见。 */
 input[type=text]:focus-visible,textarea:focus-visible,.drop:focus-visible,.preview img:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .chip-dim{opacity:.55}
 .subtle{font-size:12px;color:var(--muted);margin:12px 0 6px;flex-basis:100%;font-weight:600;letter-spacing:.3px}
-.btn{border:none;border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer;font-family:inherit;transition:.15s;display:inline-block;text-decoration:none}
+.btn{border:none;border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer;font-family:inherit;transition:.15s;display:inline-block;text-decoration:none;text-align:center}
 .btn-primary{background:var(--blue);color:#fff}
 .btn-primary:hover{filter:brightness(1.08)}
 .btn-ai{background:#eef3fb;color:var(--blue)}
 .btn-ai:hover{background:#e0ebfa}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-/* <a> 没有 disabled 属性：导出进行中时用同一个 .is-busy 状态挡住鼠标，键盘回车由点击处理器里的 busy 守卫兜住。 */
 .btn.is-busy{opacity:.5;pointer-events:none;cursor:not-allowed}
-/* 头部「新手引导」以前用内联样式把 .btn 的 padding 从 9px 压到 4px，命中高度正好卡在 24px 那条线上。
-   缩小本身没问题，但它应该是一条组件规则，并且自己保证最小命中高度。 */
 .btn-sm{padding:4px 12px;font-size:12px;min-height:28px}
 .note{font-size:12px;color:var(--muted);margin-top:6px}
 .small-note{font-size:12px;color:var(--muted);margin-top:6px;min-height:15px}
 .pill{display:inline-block;border:1px dashed var(--line);background:#fbf9f5;border-radius:14px;padding:4px 11px;font-size:12px;color:var(--muted);line-height:1.5}
-.ai-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.pill.dirty{background:#fdf6e7;border-color:#f0e2c2;color:#8a6017;margin-top:8px}
 .hint{font-size:12px;color:#8a6017;background:#fdf6e7;border:1px solid #f0e2c2;border-radius:10px;padding:8px 11px;margin-top:8px;line-height:1.6}
 .hint:empty{display:none}
-/* The AI availability notice has to be readable from *any* step: as a `.hint` inside step 4 it was
-   invisible (inactive steps are display:none now, opacity:0 before), so it moved to a page banner. */
-.banner{max-width:960px;margin:0 auto 14px;font-size:13px;color:#8a6017;background:#fdf6e7;border:1px solid #f0e2c2;border-radius:12px;padding:9px 13px;line-height:1.6}
+.banner{font-size:13px;color:#8a6017;background:#fdf6e7;border:1px solid #f0e2c2;border-radius:12px;padding:9px 13px;line-height:1.6}
 .banner.ok{color:#1f6b45;background:#eff8f2;border-color:#cfe8da}
 .banner:empty{display:none}
-.subtle{font-size:12px;color:var(--muted);margin:12px 0 6px;flex-basis:100%;font-weight:600;letter-spacing:.3px}
 .bar{height:4px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:10px;display:none}
 .bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
-.nav{display:flex;gap:10px;margin-top:8px}
-.nav .spacer{flex:1}
-.previews{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
-.preview{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
-.preview h3{margin:0 0 10px;font-size:15px}
+#status{font-size:13px;color:#3a4048;margin-top:10px;min-height:20px;font-weight:600}
+.cta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 4px}
+.cta .cta-btn{font-size:16px;font-weight:700;padding:12px 24px;min-height:46px}
+.empty-preview{border:1px dashed var(--line);background:#fbf9f5;border-radius:12px;padding:28px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.9;margin-top:10px}
+.empty-preview b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+.previews{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.preview{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+.preview h3{margin:0 0 8px;font-size:14px}
 .preview img{width:100%;border-radius:8px;display:block}
 .preview img:hover{cursor:zoom-in}
 .downloads{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.dl-main{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.dl-main .btn{flex:1 1 auto}
+.dl-more{display:flex;gap:8px;flex-wrap:wrap}
+.preview-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.preview-actions .note{margin:0}
+details.adv{border:1px solid var(--line);border-radius:12px;padding:0 12px;margin-top:10px;background:#fcfaf6}
+details.adv>summary{cursor:pointer;padding:10px 2px;font-size:13px;font-weight:600;color:#4a4c50;list-style:none}
+details.adv>summary::-webkit-details-marker{display:none}
+details.adv>summary::before{content:"\25B8";display:inline-block;margin-right:7px;color:var(--muted);transition:transform .15s}
+details.adv[open]>summary::before{transform:rotate(90deg)}
+details.adv>summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+details.adv .field{padding-top:2px}
+details.adv .field:last-child{margin-bottom:12px}
+.field-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.field-row input[type=text]{flex:1;min-width:140px}
 .edwrap{margin-top:10px}
-#editor{width:100%;border-radius:10px;border:1px solid var(--line);touch-action:none}
-/* A dialog that only goes transparent is still laid out, still clickable-by-keyboard: six invisible
-   controls (the framing slider, its three buttons, and the help dialog's button) sat in the tab chain
-   between the page's own buttons. visibility:hidden takes a whole subtree out of the sequential focus
-   order; the delay on the way out keeps the fade from being cut short. */
+#editor{width:100%;border-radius:10px;border:1px solid var(--line);touch-action:none;background:#f6f1e7}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.hide{display:none !important}
 .modal{position:fixed;inset:0;background:rgba(20,24,30,.55);display:flex;align-items:center;justify-content:center;z-index:80;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .25s,visibility 0s linear .25s}
 .modal.show{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .25s}
 .modal .mcard{background:#fff;border-radius:18px;max-width:560px;width:92%;max-height:86vh;overflow:auto;padding:24px 26px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .modal .mcard h2{margin:0 0 14px;font-size:20px}
 .modal .mcard ol,.modal .mcard p{line-height:1.7;color:#3a4048}
-.hide{display:none !important}
-.modal .mcard .mbtns{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
-#viewModal .vcard{background:#0c0e12;max-width:96vw;max-height:92vh;display:flex;align-items:center;justify-content:center;padding:10px;border-radius:12px}
+.modal .mcard .mbtns{display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+.modal .mcard .mbtns .spacer{flex:1}
+.modal .mcard.editor{max-width:940px;width:96%}
+#viewModal .vcard{background:#0c0e12;max-width:96vw;max-height:92vh;display:flex;align-items:center;justify-content:center;padding:10px;border-radius:12px;position:relative}
 #viewModal img{max-width:96vw;max-height:88vh;border-radius:8px;object-fit:contain}
 #viewModal .vcard h3{color:#fff;margin:0 0 10px;text-align:center}
-.tips{max-width:960px;margin:14px auto;font-size:13px;color:var(--muted)}
-.peak-hint{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:#fff;background:#46b878;padding:10px 16px;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.2);cursor:help;user-select:none;letter-spacing:.4px;line-height:1;animation:pkfloat 2.8s ease-in-out infinite}
-.peak-hint.peak{background:#d1503f}
-.pk-dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:pkpulse 1.3s ease-in-out infinite}
-.peak-hint.peak .pk-dot{animation-duration:.8s}
-#peakCount{font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;opacity:.96}
-@keyframes pkpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
-@keyframes pkfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@media (max-width:640px){body{padding:10px}.steps{max-width:100%}header h1{font-size:19px}.stepper{flex-wrap:wrap}.preview img{width:100%}.btn{font-size:13px;padding:8px 12px}.card{padding:14px}.banner{padding:8px 10px;font-size:12px}.previews{grid-template-columns:1fr}}
-/* On a 390px phone the 14px slide-in itself overflowed the viewport for a moment; fading is enough. */
-@media (max-width:640px){@keyframes stepIn{from{opacity:0}to{opacity:1}}}
-/* 倒计时胶囊是信息，不是操作，可它 position:fixed 浮在最上层。在 390px 手机上实测：步骤 3 有两个
-   选项 chip 的正中被它接走——点下去命中的是胶囊，不是选项（elementFromPoint 给出的实锤）。
-   触屏上它的 title 本来就不会弹，所以窄屏下让指针直接穿过去；再把页面底部留出胶囊的高度，
-   滚到底时没有控件会一直压在它下面。宽屏下内容居中在 960px 列里，胶囊落在右侧空白，不挡任何东西。 */
-@media (max-width:640px){.peak-hint{pointer-events:none;right:10px;bottom:10px;font-size:13px;padding:8px 12px;animation:none}body{padding-bottom:64px}}
+@media (max-width:1024px){
+  .workspace{grid-template-columns:1fr;gap:14px}
+  .preview-col{position:static}
+  .step-nav{position:sticky;top:0;z-index:60;background:var(--paper);padding:8px 0;margin:8px 0 4px}
+  body{padding-bottom:112px}
+  .cta{position:fixed;left:0;right:0;bottom:0;z-index:70;margin:0;background:#fff;border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(0,0,0,.08);flex-wrap:nowrap}
+  .cta .cta-btn{flex:1;min-height:44px}
+  .cta #specPill{display:none}
+  .previews{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  body{padding:10px 10px 96px}
+  .brand h1{font-size:20px}
+  .card{padding:14px}
+  .btn{font-size:13px;padding:8px 12px}
+  .cta .cta-btn{font-size:15px}
+  .step-nav a{padding:5px 11px;font-size:12px}
+  .modal .mcard{padding:18px;width:94%}
+  .previews{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none !important;animation:none !important}
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>Postcard Studio <button class="btn btn-ai btn-sm" id="helpBtn" style="margin-left:10px">新手引导</button></h1>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0">
-    <span style="font-size:13px;color:var(--muted)">流程：</span>
-    <div class="opt" id="modeChips">
-      <label class="chip on"><input type="radio" name="mode" value="standard" checked>标准模式</label>
-      <label class="chip"><input type="radio" name="mode" value="img2img">图生图(仅风格)</label>
+<header class="app-head">
+  <div class="head-row">
+    <div class="brand">
+      <h1>明信片工坊 <span class="en">Postcard Studio</span></h1>
+      <button class="btn btn-ai btn-sm" id="helpBtn" style="margin-left:10px">使用说明</button>
     </div>
-    <span class="note" id="modeNote" style="margin:0"></span>
+    <div class="banner" id="aiBanner"></div>
   </div>
-  <div class="sub">上传照片 → 识别元素 → 选风格 → 生成明信片</div>
-  <div class="stepper" id="stepper">
-    <button class="s-step active" data-goto="1"><i>1</i> 添加照片</button>
-    <button class="s-step" data-goto="2"><i>2</i> 识别元素</button>
-    <button class="s-step" data-goto="3"><i>3</i> 选择风格</button>
-    <button class="s-step" data-goto="4"><i>4</i> 生成</button>
-    <button class="s-step" data-goto="5"><i>5</i> 画布编辑</button>
-  </div>
+  <nav class="step-nav" id="stepNav" aria-label="流程">
+    <a href="#sec-upload" data-step="1" aria-current="step"><i>1</i>上传照片</a>
+    <a href="#sec-style" data-step="2"><i>2</i>选择风格</a>
+    <a href="#sec-generate" data-step="3"><i>3</i>预览与下载</a>
+  </nav>
 </header>
 
-<div class="banner" id="aiBanner"></div>
-
-<div class="steps" id="steps">
-  <!-- 1 上传 -->
-  <section class="step active" data-step="1">
-    <div class="card">
-      <h2>1. 添加照片</h2>
-      <!-- 上传入口是整页第一个、也是唯一一个必经动作：它必须能 Tab 到、能回车打开，
-           而且真的接得住拖拽（见下面 dragover/drop）。隐藏的 file input 只负责弹系统选择框。 -->
+<main class="workspace" id="workspace">
+  <div class="controls">
+    <section class="card" id="sec-upload">
+      <h2>1 上传照片</h2>
       <div class="drop" id="drop" tabindex="0" role="button" aria-label="添加照片（回车打开文件选择器）">
-        <div id="dropTxt">点击或拖入一张照片</div>
+        <div id="dropTxt">点击 / 拖入 / Ctrl+V 粘贴一张照片</div>
         <img id="preview" style="display:none">
         <input type="file" id="photo" accept="image/*" style="display:none">
       </div>
-      <div class="swatches" id="swatches" style="display:none"></div>
       <div class="note" id="uploadNote"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-ai" id="cropBtn">裁剪取景</button><span class="pill" id="cropHint">可选：框选照片重点，比例跟随卡片朝向</span></div>
-    </div>
-    <div class="nav"><span class="spacer"></span><button class="btn btn-primary" data-nav="1-next" data-goto="2">下一步</button></div>
-  </section>
+      <div class="photo-actions">
+        <button class="btn btn-ai" id="cropBtn" disabled>裁剪取景(3:2)</button>
+        <button class="btn btn-ai" id="changePhotoBtn" disabled>更换照片</button>
+        <button class="btn btn-ai" id="removePhotoBtn" disabled>移除</button>
+        <span class="pill" id="cropHint">可选：框选照片重点，比例跟随卡片朝向</span>
+      </div>
+    </section>
 
-  <!-- 2 元素 -->
-  <section class="step" data-step="2">
-    <div class="card">
-      <h2>2. 识别并筛选元素</h2>
-      <div class="ai-row">
-        <button class="btn btn-ai" id="aiBtn">识别图片元素</button>
-        <span class="pill">AI 识别照片里的元素，可勾选筛选</span>
-      </div>
-      <div class="bar" id="aiBar"><i></i></div>
-      <div class="small-note" id="aiStatus"></div>
-      <div class="field" style="margin-bottom:0"><label>识别到的元素（点击筛选保留）</label></div>
-      <div class="opt" id="elemChips" style="margin-top:8px"><span class="pill">尚未识别——上传照片后点「识别图片元素」</span></div>
-      <div class="field" style="margin-top:8px"><label>自定义标签（不限于内置主题，逗号分隔）</label><input type="text" id="tags" placeholder="grass, stadium, night soccer　｜　球场, 夜训"></div>
-      <div class="opt" id="outOpts">
-        <label class="chip on"><input type="checkbox" data-k="swatches" checked>3 色块</label>
-        <label class="chip on"><input type="checkbox" data-k="show_date" checked>拍摄日期</label>
-        <label class="chip on"><input type="checkbox" data-k="want_back" checked>标准写法面</label>
-        <label class="chip"><input type="checkbox" data-k="rounded">卡片圆角</label>
-        <label class="chip"><input type="checkbox" data-k="enhance">照片增强</label>
-      </div>
-      <div class="field" style="margin-top:14px"><label>手绘元素库（作点缀，可多选）</label>
-        <div class="opt" id="libChips">
-          <div class="subtle">天空·海洋</div>
-          <label class="chip" data-v="sun"><input type="checkbox">太阳</label>
-          <label class="chip" data-v="moon"><input type="checkbox">月亮</label>
-          <label class="chip" data-v="clouds"><input type="checkbox">云雾</label>
-          <label class="chip" data-v="birds"><input type="checkbox">飞鸟</label>
-          <label class="chip" data-v="aurora"><input type="checkbox">极光</label>
-          <label class="chip" data-v="fireworks"><input type="checkbox">烟花</label>
-          <label class="chip" data-v="stars"><input type="checkbox">星空</label>
-          <label class="chip" data-v="water"><input type="checkbox">水域</label>
-          <label class="chip" data-v="boat"><input type="checkbox">帆船</label>
-          <div class="subtle">城市·交通</div>
-          <label class="chip" data-v="skyline"><input type="checkbox">天际线</label>
-          <label class="chip" data-v="building"><input type="checkbox">建筑</label>
-          <label class="chip" data-v="people"><input type="checkbox">人物</label>
-          <label class="chip" data-v="street"><input type="checkbox">街道</label>
-          <label class="chip" data-v="car"><input type="checkbox">车辆</label>
-          <label class="chip" data-v="sign"><input type="checkbox">招牌</label>
-          <label class="chip" data-v="train"><input type="checkbox">火车</label>
-          <div class="subtle">自然点缀</div>
-          <label class="chip" data-v="flowers"><input type="checkbox">花丛</label>
-          <label class="chip" data-v="mountain"><input type="checkbox">山峰</label>
-          <label class="chip" data-v="forest"><input type="checkbox">松林</label>
+    <section class="card" id="sec-style">
+      <h2>2 选择风格</h2>
+      <div class="field">
+        <label>快速模板</label>
+        <div class="opt" id="presetChips">
+          <button type="button" class="chip" data-p="sunset">海景日落</button>
+          <button type="button" class="chip" data-p="city">城市街景</button>
+          <button type="button" class="chip" data-p="mountain">山林</button>
+          <button type="button" class="chip" data-p="minimal">极简</button>
+          <button type="button" class="chip" data-p="vintage">复古</button>
+          <button type="button" class="chip" data-p="night">星空夜景</button>
+          <button type="button" class="chip" data-p="aurora">极光之夜</button>
+          <button type="button" class="chip" data-p="festival">烟花庆典</button>
         </div>
+        <div class="note" id="templateNote">点模板一键套用（风格 / 纸张 / 字体 / 滤镜 / 圆角 / 点缀元素）</div>
       </div>
-      <div class="note" id="aiNote"></div>
-    </div>
-    <div class="nav"><button class="btn btn-ai" data-goto="1">上一步</button><span class="spacer"></span><button class="btn btn-primary" data-goto="3">下一步</button></div>
-  </section>
 
-  <!-- 3 风格 -->
-  <section class="step" data-step="3">
-    <div class="card">
-      <h2>3. 选择风格</h2>
-      <div class="field"><label>正面朝向（竖屏照片自动竖版，防过量裁切；背面固定横版不受影响）</label>
-        <div class="opt" id="orientChips">
-          <label class="chip on"><input type="radio" name="orient" value="auto" checked>自动横竖</label>
-          <label class="chip"><input type="radio" name="orient" value="landscape">强制横版</label>
-          <label class="chip"><input type="radio" name="orient" value="portrait">强制竖版</label>
-        </div>
-      </div>
-      <div class="field" style="margin-bottom:10px"><label>标题（留空则 AI 自动命名，图生图/手绘均生效）</label><input type="text" id="title" placeholder="ALPINE RIDGE"></div>
-      <div class="field" style="margin-bottom:10px"><label>图案生成方式</label>
+      <div class="field">
+        <label>图案方式</label>
         <div class="opt" id="patternChips">
-          <label class="chip on"><input type="radio" name="pattern" value="handdrawn" checked>手绘</label>
-          <label class="chip"><input type="radio" name="pattern" value="t2i">AI生图(照片风格化)</label>
-          <label class="chip"><input type="radio" name="pattern" value="aibg">AI背景(根据skill)</label>
-          <label class="chip"><input type="radio" name="pattern" value="zine">实景拼贴(Zine)</label>
+          <label class="chip on"><input type="radio" name="pattern" value="handdrawn" checked>手绘水彩</label>
+          <label class="chip"><input type="radio" name="pattern" value="t2i">AI 风格化</label>
+          <label class="chip"><input type="radio" name="pattern" value="aibg">AI 背景</label>
+          <label class="chip"><input type="radio" name="pattern" value="zine">实景拼贴</label>
         </div>
         <div class="opt hide" id="bgModeChips" style="margin-top:8px">
           <div class="subtle">AI 背景出图方式</div>
@@ -247,213 +203,280 @@ input[type=text]:focus-visible,textarea:focus-visible,.drop:focus-visible,.previ
         </div>
         <div class="opt hide" id="bgModelChips" style="margin-top:8px">
           <div class="subtle">文生图模型</div>
-          <label class="chip on"><input type="radio" name="bgmodel" value="quality" checked>高品质(推荐商用)</label>
-          <label class="chip"><input type="radio" name="bgmodel" value="free">免费(性价比)</label>
+          <label class="chip on"><input type="radio" name="bgmodel" value="quality" checked>高品质（推荐）</label>
+          <label class="chip"><input type="radio" name="bgmodel" value="free">免费（性价比）</label>
         </div>
-        <div class="note" id="patternNote">实景拼贴(Zine v1.3)＝按"Gathered Scenes Zine"风格：真景为锚+抽象插画场+单一高饱和色结构+撕纸纤维边界+负空间+微文案（图生图，Qwen-Image-Edit）；照片风格化＝按所选风格对照片风格化（保留物体）</div>
+        <div class="note" id="patternNote">本地矢量水彩/手绘引擎，无需 AI 密钥，离线可生成。</div>
       </div>
-      <div class="opt" id="presetChips">
-        <button type="button" class="chip" data-p="sunset">海景日落</button>
-        <button type="button" class="chip" data-p="city">城市街景</button>
-        <button type="button" class="chip" data-p="mountain">山林</button>
-        <button type="button" class="chip" data-p="minimal">极简</button>
-        <button type="button" class="chip" data-p="vintage">复古</button>
-        <button type="button" class="chip" data-p="night">星空夜景</button>
-        <button type="button" class="chip" data-p="aurora">极光之夜</button>
-        <button type="button" class="chip" data-p="festival">烟花庆典</button>
-      </div>
-      <div class="note" id="templateNote">点模板一键套用（风格/纸张/字体/滤镜/圆角/点缀元素）</div>
-      <div class="opt" id="styleChips" style="margin-top:10px">
-        <label class="chip on"><input type="radio" name="style" value="default" checked>自动</label>
-        <label class="chip"><input type="radio" name="style" value="handdrawn">手绘</label>
-        <label class="chip"><input type="radio" name="style" value="watercolor">水彩</label>
-        <label class="chip"><input type="radio" name="style" value="ink">水墨</label>
-        <label class="chip"><input type="radio" name="style" value="minimal">极简</label>
-        <label class="chip"><input type="radio" name="style" value="vintage">复古</label>
-        <label class="chip"><input type="radio" name="style" value="pastel">治愈</label>
-        <label class="chip"><input type="radio" name="style" value="film">胶片</label>
-        <label class="chip"><input type="radio" name="style" value="oil">油画</label>
-      </div>
-      <div class="note" id="styleNote"></div>
-      <div class="field"><label>自定义画面 / 风格（可选，一句话描述想生成的场景，AI生图会严格应用；手绘也用于配色）</label><textarea id="desc" placeholder="例如：油画色调、暖光厚涂　｜　水墨留白、淡雅空灵　｜　星空下的雪原"></textarea></div>
-      <div class="field"><label>纸张</label>
-        <div class="opt" id="paperChips">
-          <label class="chip on"><input type="radio" name="paper_skin" value="" checked>自动</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="ivory">象牙</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="white">纯白</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="kraft">牛皮</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="warm">暖米</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="black">深空黑</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="blue">雾蓝</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="rose">淡粉</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="mint">薄荷</label>
-          <label class="chip"><input type="radio" name="paper_skin" value="midnight">深夜藏蓝</label>
-        </div>
-      </div>
-      <div class="field"><label>标题字体</label>
-        <div class="opt" id="tfontChips">
-          <label class="chip on"><input type="radio" name="tfont" value="" checked>英文</label>
-          <label class="chip" style="font-family:SimSun,serif"><input type="radio" name="tfont" value="song">宋体</label>
-          <label class="chip" style="font-family:SimHei,sans-serif"><input type="radio" name="tfont" value="hei">黑体</label>
-          <label class="chip" style="font-family:KaiTi,SimKai,serif"><input type="radio" name="tfont" value="kai">楷体</label>
-          <label class="chip" style="font-family:FangSong,SimFang,serif"><input type="radio" name="tfont" value="fang">仿宋</label>
-          <label class="chip" style="font-family:'MiSans',sans-serif"><input type="radio" name="tfont" value="mi">MiSans</label>
-        </div>
-      </div>
-      <div class="field"><label>标题样式</label>
-        <div class="opt" id="tstyleChips">
-          <label class="chip on"><input type="radio" name="tstyle" value="normal" checked>常规</label>
-          <label class="chip"><input type="radio" name="tstyle" value="bold">粗体</label>
-          <label class="chip"><input type="radio" name="tstyle" value="italic">斜体</label>
-          <label class="chip"><input type="radio" name="tstyle" value="bolditalic">粗斜体</label>
-        </div>
-      </div>
-      <div class="field"><label>卡片滤镜</label>
-        <div class="opt" id="filtChips">
-          <label class="chip on"><input type="radio" name="filt" value="none" checked>无</label>
-          <label class="chip"><input type="radio" name="filt" value="bw">黑白</label>
-          <label class="chip"><input type="radio" name="filt" value="sepia">复古</label>
-          <label class="chip"><input type="radio" name="filt" value="warm">暖调</label>
-          <label class="chip"><input type="radio" name="filt" value="cool">冷调</label>
-          <label class="chip"><input type="radio" name="filt" value="grain">胶片颗粒</label>
-        </div>
-      </div>
-      <div class="field"><label>标题玻璃（Liquid Glass 透明/模糊）</label>
-        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-          <label style="font-size:12px;color:var(--muted)">透明度 <input type="range" id="glassA" min="30" max="90" value="55" style="width:130px;vertical-align:middle"> <span id="glassAV" style="min-width:30px;display:inline-block;text-align:right">55</span></label>
-          <label style="font-size:12px;color:var(--muted)">模糊度 <input type="range" id="glassB" min="1" max="10" value="3" style="width:130px;vertical-align:middle"> <span id="glassBV" style="min-width:30px;display:inline-block;text-align:right">3</span></label>
-        </div>
-      </div>
-      <div class="field" style="margin-top:18px"><label>位置 / 经纬度（可选，印到卡片）</label><input type="text" id="location" placeholder="如 109.50°E　21.40°N"></div>
-    </div>
-    <div class="nav"><button class="btn btn-ai" data-nav="3-prev" data-goto="2">上一步</button><span class="spacer"></span><button class="btn btn-primary" data-goto="4">下一步</button></div>
-  </section>
 
-  <!-- 4 生成 -->
-  <section class="step" data-step="4">
-    <div class="card">
-      <h2>4. 生成明信片</h2>
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-primary" id="genBtn">生成明信片</button>
-        <button class="btn btn-ai" id="editBtn">画布编辑</button>
-        <button class="btn btn-ai" id="pngSetBtn">一键输出一套PNG</button>
-        <button class="btn btn-ai" id="bundleBtn">下载全套(ZIP)</button>
+      <div class="field">
+        <label>风格</label>
+        <div class="opt" id="styleChips">
+          <label class="chip on"><input type="radio" name="style" value="default" checked>自动</label>
+          <label class="chip"><input type="radio" name="style" value="handdrawn">手绘</label>
+          <label class="chip"><input type="radio" name="style" value="watercolor">水彩</label>
+          <label class="chip"><input type="radio" name="style" value="ink">水墨</label>
+          <label class="chip"><input type="radio" name="style" value="minimal">极简</label>
+          <label class="chip"><input type="radio" name="style" value="vintage">复古</label>
+          <label class="chip"><input type="radio" name="style" value="pastel">治愈</label>
+          <label class="chip"><input type="radio" name="style" value="film">胶片</label>
+          <label class="chip"><input type="radio" name="style" value="oil">油画</label>
+        </div>
+        <div class="note" id="styleNote">选风格会改变色板 / 纸张 / 线条气质；AI 图案下决定重绘风格。</div>
+      </div>
+
+      <div class="field">
+        <label for="title">标题（留空显示 UNTITLED）</label>
+        <input type="text" id="title" placeholder="例如 ALPINE RIDGE">
+      </div>
+      <div class="field">
+        <label for="desc">自定义画面 / 风格（可选，一句话描述想生成的场景，AI 图案会严格应用；手绘也用于配色）</label>
+        <textarea id="desc" placeholder="例如：油画色调、暖光厚涂　｜　水墨留白、淡雅空灵　｜　星空下的雪原"></textarea>
+      </div>
+
+      <details class="adv" id="advText">
+        <summary>高级选项：文字与编号</summary>
+        <div class="field"><label for="location">位置 / 经纬度（可选，印到卡片）</label><input type="text" id="location" placeholder="如 109.50°E　21.40°N"></div>
+        <div class="field"><label for="date">日期（自动读取照片 EXIF，可修改）</label><input type="text" id="date" placeholder="YYYY-MM-DD"></div>
+        <div class="field"><label for="number">编号（可选，如 N° 01）</label><input type="text" id="number" placeholder="N° 01"></div>
+        <div class="field"><label for="tags">自定义标签（逗号分隔，手绘配色 / 构图会参考）</label><input type="text" id="tags" placeholder="grass, stadium, night soccer　｜　球场, 夜训"></div>
+      </details>
+
+      <details class="adv" id="advStyle">
+        <summary>高级选项：朝向与版式</summary>
+        <div class="field"><label>正面朝向（竖屏照片可自动竖版，防过量裁切；背面固定横版）</label>
+          <div class="opt" id="orientChips">
+            <label class="chip on"><input type="radio" name="orient" value="auto" checked>自动横竖</label>
+            <label class="chip"><input type="radio" name="orient" value="landscape">强制横版</label>
+            <label class="chip"><input type="radio" name="orient" value="portrait">强制竖版</label>
+          </div>
+        </div>
+        <div class="field"><label>纸张</label>
+          <div class="opt" id="paperChips">
+            <label class="chip on"><input type="radio" name="paper_skin" value="" checked>自动</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="ivory">象牙</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="white">纯白</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="kraft">牛皮</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="warm">暖米</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="black">深空黑</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="blue">雾蓝</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="rose">淡粉</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="mint">薄荷</label>
+            <label class="chip"><input type="radio" name="paper_skin" value="midnight">深夜藏蓝</label>
+          </div>
+        </div>
+        <div class="field"><label>标题字体</label>
+          <div class="opt" id="tfontChips">
+            <label class="chip on"><input type="radio" name="tfont" value="" checked>英文</label>
+            <label class="chip" style="font-family:SimSun,serif"><input type="radio" name="tfont" value="song">宋体</label>
+            <label class="chip" style="font-family:SimHei,sans-serif"><input type="radio" name="tfont" value="hei">黑体</label>
+            <label class="chip" style="font-family:KaiTi,SimKai,serif"><input type="radio" name="tfont" value="kai">楷体</label>
+            <label class="chip" style="font-family:FangSong,SimFang,serif"><input type="radio" name="tfont" value="fang">仿宋</label>
+            <label class="chip" style="font-family:'MiSans',sans-serif"><input type="radio" name="tfont" value="mi">MiSans</label>
+          </div>
+        </div>
+        <div class="field"><label>标题样式</label>
+          <div class="opt" id="tstyleChips">
+            <label class="chip on"><input type="radio" name="tstyle" value="normal" checked>常规</label>
+            <label class="chip"><input type="radio" name="tstyle" value="bold">粗体</label>
+            <label class="chip"><input type="radio" name="tstyle" value="italic">斜体</label>
+            <label class="chip"><input type="radio" name="tstyle" value="bolditalic">粗斜体</label>
+          </div>
+        </div>
+        <div class="field"><label>卡片滤镜</label>
+          <div class="opt" id="filtChips">
+            <label class="chip on"><input type="radio" name="filt" value="none" checked>无</label>
+            <label class="chip"><input type="radio" name="filt" value="bw">黑白</label>
+            <label class="chip"><input type="radio" name="filt" value="sepia">复古</label>
+            <label class="chip"><input type="radio" name="filt" value="warm">暖调</label>
+            <label class="chip"><input type="radio" name="filt" value="cool">冷调</label>
+            <label class="chip"><input type="radio" name="filt" value="grain">胶片颗粒</label>
+          </div>
+        </div>
+        <div class="field"><label>标题玻璃（Liquid Glass 透明 / 模糊）</label>
+          <div class="field-row">
+            <label style="font-size:12px;color:var(--muted)">透明度 <input type="range" id="glassA" min="30" max="90" value="55" style="width:130px;vertical-align:middle"> <span id="glassAV" style="min-width:30px;display:inline-block;text-align:right">55</span></label>
+            <label style="font-size:12px;color:var(--muted)">模糊度 <input type="range" id="glassB" min="1" max="10" value="3" style="width:130px;vertical-align:middle"> <span id="glassBV" style="min-width:30px;display:inline-block;text-align:right">3</span></label>
+          </div>
+        </div>
+      </details>
+
+      <details class="adv" id="advCard">
+        <summary>高级选项：卡片选项</summary>
+        <div class="opt" id="outOpts">
+          <label class="chip on"><input type="checkbox" data-k="swatches" checked>3 色块</label>
+          <label class="chip on"><input type="checkbox" data-k="show_date" checked>拍摄日期</label>
+          <label class="chip on"><input type="checkbox" data-k="want_back" checked>标准写法面</label>
+          <label class="chip"><input type="checkbox" data-k="rounded">卡片圆角</label>
+          <label class="chip"><input type="checkbox" data-k="enhance">照片增强</label>
+        </div>
+        <div class="note">3 色块等装饰仅手绘图案使用；AI 图案由模型直接出图。</div>
+      </details>
+
+      <details class="adv" id="advElems">
+        <summary id="elemsSummary">高级选项：手绘元素（已选 0）</summary>
+        <div class="note">仅图案方式为「手绘水彩」时参与构图；AI 图案不使用手绘元素。</div>
+        <div class="field">
+          <label>手绘元素库（作点缀，可多选）</label>
+          <div class="opt" id="libChips">
+            <div class="subtle">天空·海洋</div>
+            <label class="chip" data-v="sun"><input type="checkbox">太阳</label>
+            <label class="chip" data-v="moon"><input type="checkbox">月亮</label>
+            <label class="chip" data-v="clouds"><input type="checkbox">云雾</label>
+            <label class="chip" data-v="birds"><input type="checkbox">飞鸟</label>
+            <label class="chip" data-v="aurora"><input type="checkbox">极光</label>
+            <label class="chip" data-v="fireworks"><input type="checkbox">烟花</label>
+            <label class="chip" data-v="stars"><input type="checkbox">星空</label>
+            <label class="chip" data-v="water"><input type="checkbox">水域</label>
+            <label class="chip" data-v="boat"><input type="checkbox">帆船</label>
+            <div class="subtle">城市·交通</div>
+            <label class="chip" data-v="skyline"><input type="checkbox">天际线</label>
+            <label class="chip" data-v="building"><input type="checkbox">建筑</label>
+            <label class="chip" data-v="people"><input type="checkbox">人物</label>
+            <label class="chip" data-v="street"><input type="checkbox">街道</label>
+            <label class="chip" data-v="car"><input type="checkbox">车辆</label>
+            <label class="chip" data-v="sign"><input type="checkbox">招牌</label>
+            <label class="chip" data-v="train"><input type="checkbox">火车</label>
+            <div class="subtle">自然点缀</div>
+            <label class="chip" data-v="flowers"><input type="checkbox">花丛</label>
+            <label class="chip" data-v="mountain"><input type="checkbox">山峰</label>
+            <label class="chip" data-v="forest"><input type="checkbox">松林</label>
+          </div>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <aside class="preview-col" id="previewCol">
+    <section class="card preview-panel" id="sec-generate">
+      <div class="section-head"><h2>3 预览与下载</h2></div>
+      <div class="cta" id="genActionBar">
+        <button class="btn btn-primary cta-btn" id="genBtn" disabled>生成明信片</button>
+        <button class="btn btn-ai hide" id="regenBtn">换一张 AI 场景</button>
         <span class="pill" id="specPill">横版 150×100mm（3:2）</span>
       </div>
-      <div class="note" style="margin-top:10px">印刷建议：成品 300dpi 以上（导出已含 600dpi/出血/裁剪线）；专业胶印请转CMYK；推荐 200g 以上铜版/哑粉纸。</div>
-      <div id="status" role="status"></div>
+      <div id="status" role="status" aria-live="polite"></div>
       <div class="hint" id="genHint" role="status"></div>
       <div class="bar" id="bar"><i></i></div>
+
+      <div class="empty-preview" id="previewEmpty"><b>生成后在这里预览</b>上传照片 → 选择风格 → 点「生成明信片」</div>
       <div class="previews" id="previews">
-        <div class="preview" id="pv-front" style="display:none"><h3>图案面（正面）</h3><img id="img-front" tabindex="0" role="button" aria-label="放大查看图案面（回车）"><div class="downloads"><a class="btn btn-ai" data-dl="front-hi" data-name="postcard-front-600dpi.png">高清PNG(600dpi)</a><a class="btn btn-ai" data-dl="front-pdf" data-name="postcard-front-print.pdf">打印版PDF(含出血)</a><a class="btn btn-ai" data-dl="sheet-pdf" data-name="postcard-sheet-A4.pdf">A4拼版(2张)</a><a class="btn btn-ai" data-dl="wallpaper" data-name="postcard-wallpaper-1080x1920.png">手机壁纸(9:16)</a><a class="btn btn-ai" data-dl="svg" data-name="postcard-vector.svg.zip">矢量SVG</a><button class="btn btn-ai" id="regenBtn" style="display:none">换一张AI场景</button></div></div>
-        <div class="preview" id="pv-back" style="display:none"><h3>写法面（背面）</h3><img id="img-back" tabindex="0" role="button" aria-label="放大查看写法面（回车）"><div class="downloads"><a class="btn btn-ai" data-dl="back-hi" data-name="postcard-back-600dpi.png">高清PNG(600dpi)</a><a class="btn btn-ai" data-dl="back-pdf" data-name="postcard-back-print.pdf">打印版PDF(含出血)</a><a class="btn btn-ai" data-dl="sheet-pdf-back" data-name="postcard-sheet-A4-back.pdf">A4拼版(2张)</a></div></div>
+        <div class="preview" id="pv-front" hidden><h3>图案面（正面）</h3><img id="img-front" tabindex="0" role="button" aria-label="放大查看图案面（回车）"></div>
+        <div class="preview" id="pv-back" hidden><h3>写法面（背面）</h3><img id="img-back" tabindex="0" role="button" aria-label="放大查看写法面（回车）"></div>
       </div>
-      <!-- 存档排在成品下面：出图后第一眼看到的必须是卡片，而不是一个空盒子 -->
-      <div class="card" style="margin-top:14px"><h3 style="margin-top:0">作品存档</h3>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="text" id="draftName" placeholder="给这套方案起个名（如 傍晚海岸）" style="flex:1;min-width:140px;padding:8px 12px;border:1px solid #e7e2d8;border-radius:9px">
+      <span class="pill dirty" id="dirtyPill" hidden>设置已修改，预览为上次生成；重新生成可更新</span>
+
+      <div class="downloads">
+        <div class="dl-main" id="downloadsMain">
+          <button type="button" class="btn btn-primary" id="pngSetBtn" disabled>PNG 套件</button>
+          <button type="button" class="btn btn-ai" data-dl="front-pdf" data-name="postcard-front-print.pdf" disabled>打印 PDF</button>
+          <button type="button" class="btn btn-ai" data-dl="sheet-pdf" data-name="postcard-sheet-A4.pdf" disabled>A4 拼版</button>
+          <button type="button" class="btn btn-ai" id="bundleBtn" disabled>全套 ZIP</button>
+        </div>
+        <details class="adv" id="downloadsMore">
+          <summary>更多格式（单面 / 壁纸 / SVG / CMYK）</summary>
+          <div class="dl-more">
+            <button type="button" class="btn btn-ai" data-dl="front-hi" data-name="postcard-front-600dpi.png" disabled>正面高清 PNG</button>
+            <button type="button" class="btn btn-ai" data-dl="back-hi" data-name="postcard-back-600dpi.png" disabled>背面高清 PNG</button>
+            <button type="button" class="btn btn-ai" data-dl="back-pdf" data-name="postcard-back-print.pdf" disabled>背面打印 PDF</button>
+            <button type="button" class="btn btn-ai" data-dl="sheet-pdf-back" data-name="postcard-sheet-A4-back.pdf" disabled>背面 A4 拼版</button>
+            <button type="button" class="btn btn-ai" data-dl="wallpaper" data-name="postcard-wallpaper-1080x1920.png" disabled>手机壁纸</button>
+            <button type="button" class="btn btn-ai" data-dl="svg" data-name="postcard-vector.svg.zip" disabled>矢量 SVG（.svg.zip）</button>
+            <button type="button" class="btn btn-ai" data-dl="print-cmyk" data-name="postcard-print-CMYK.pdf" disabled>CMYK 印刷 PDF</button>
+          </div>
+          <div class="note">SVG 与当前图案一致：AI 图案使用图生图结果矢量化，本地水彩使用原图。</div>
+        </details>
+      </div>
+
+      <div class="preview-actions">
+        <button class="btn btn-ai" id="editBtn" disabled>高级微调（仅矢量手绘）</button>
+        <span class="note" id="editNote">仅矢量手绘生效；AI 图案会忽略布局。</span>
+      </div>
+
+      <details class="adv" id="draftBox">
+        <summary>作品存档</summary>
+        <div class="field-row">
+          <input type="text" id="draftName" placeholder="给这套方案起个名（如 傍晚海岸）">
           <button class="btn btn-ai" id="saveDraftBtn">保存为草稿</button>
         </div>
         <div id="draftList" class="opt" style="margin-top:10px"></div>
-      </div>
-    </div>
-    <div class="nav"><button class="btn btn-ai" data-goto="3">上一步</button><span class="spacer"></span></div>
-  </section>
+      </details>
+    </section>
+  </aside>
+</main>
 
-  <!-- 5 画布编辑 -->
-  <section class="step" data-step="5">
-    <div class="card">
-      <h2>5. 画布编辑（拖/缩/转/层/删，双击改标题）</h2>
-      <canvas id="editor" width="900" height="600"></canvas>
-      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-ai" id="editUndo">撤销</button>
-        <button class="btn btn-ai" id="editRedo">重做</button>
-        <button class="btn btn-ai" id="editReset">重置</button>
-        <button class="btn btn-ai" id="editPreview">预览真实效果</button>
-        <button class="btn btn-ai" id="layFront">置顶</button>
-        <button class="btn btn-ai" id="layBack">置底</button>
-        <button class="btn btn-primary" id="editorApply">应用布局</button>
-        <button class="btn btn-ai" id="editorBack">返回</button>
-      </div>
-      <div class="note">提示：拖动移动元素，右下角缩放，顶部把手旋转，右键删除元素，方向键微调。</div>
-    </div>
-  </section>
-</div>
-
-<div class="tips">提示：<span id="tip"></span></div>
-
-<div class="peak-hint" id="peakHint" title="高峰时段：北京时间 周一至周五 9:00 - 12:00、14:00 - 18:00（其余为空闲时段）">
-  <span class="pk-dot"></span><span id="peakLabel">可劲儿用吧</span><span style="opacity:.7">·</span><span id="peakCount">距下一时段 --</span>
-</div>
-<!-- no inline onclick here any more: closing had to go through closeModal() so that focus gets handed
-     back, and an attribute handler cannot reach it. The card text already says how to dismiss it. -->
 <div class="modal" id="viewModal"><div class="vcard"><h3 style="position:absolute;top:14px;left:0;right:0">点击任意处关闭（或按 Esc）</h3><img id="viewImg" alt="预览"></div></div>
 <div class="modal" id="cropModal" data-cancel="cropCancel">
   <div class="mcard">
     <h2 id="cropTitle">裁剪取景（拖动框选重点）</h2>
     <canvas id="cropCv" style="width:100%;background:#111;border-radius:8px;display:block;touch-action:none"></canvas>
-    <div style="display:flex;gap:10px;align-items:center;margin-top:8px"><span style="font-size:13px;color:#6b7280">取景缩放</span><input type="range" id="cropZoom" min="1" max="3" step="0.05" value="1" style="flex:1"><span id="cropZoomVal" style="font-size:13px;color:#6b7280;min-width:34px;text-align:right">1.0×</span></div>
+    <div class="field-row" style="margin-top:8px"><span style="font-size:13px;color:#6b7280">取景缩放</span><input type="range" id="cropZoom" min="1" max="3" step="0.05" value="1" style="flex:1"><span id="cropZoomVal" style="font-size:13px;color:#6b7280;min-width:34px;text-align:right">1.0×</span></div>
     <div class="mbtns"><button class="btn btn-ai" id="cropReset">还原</button><button class="btn btn-ai" id="cropCancel">取消</button><button class="btn btn-primary" id="cropOk">确定取景</button></div>
+  </div>
+</div>
+<div class="modal" id="editorModal" data-cancel="editorBack">
+  <div class="mcard editor">
+    <h2>高级微调（仅矢量手绘）</h2>
+    <canvas id="editor" width="900" height="600"></canvas>
+    <div class="mbtns">
+      <button class="btn btn-ai" id="editUndo">撤销</button>
+      <button class="btn btn-ai" id="editRedo">重做</button>
+      <button class="btn btn-ai" id="editReset">重置布局</button>
+      <button class="btn btn-ai" id="editPreview">预览真实效果</button>
+      <button class="btn btn-ai" id="layFront">置顶</button>
+      <button class="btn btn-ai" id="layBack">置底</button>
+      <span class="spacer"></span>
+      <button class="btn btn-ai" id="editorBack">关闭</button>
+      <button class="btn btn-primary" id="editorApply">应用布局</button>
+    </div>
+    <div class="note">拖动移动元素、右下角缩放、顶部把手旋转、右键删除、方向键微调；双击标题可改文字。</div>
   </div>
 </div>
 <div class="modal" id="helpModal" data-cancel="closeHelp">
   <div class="mcard">
-    <h2 id="helpTitle">Postcard Studio 使用引导</h2>
+    <h2 id="helpTitle">明信片工坊 使用说明</h2>
     <ol>
-      <li><b>1. 添加照片</b>：点击/拖入一张照片（自动压缩优化）。</li>
-      <li><b>2. 识别元素</b>：点「识别图片元素」，AI 读出照片里的元素，点选/取消保留想要的部分。</li>
-      <li><b>3. 选择风格</b>：一键套用场景模板，或自选 图案方式(手绘/AI生图)/风格/纸张/标题字体/粗斜体/滤镜/圆角/经纬度。</li>
-      <li><b>4. 生成</b>：点「生成明信片」出正/背面，可另存为高清PNG、打印版PDF、A4拼版、手机壁纸、矢量SVG或全套ZIP；也可「作品存档」。</li>
-      <li><b>5. 画布编辑</b>：拖动/缩放/旋转/置顶置底/删除元素，双击标题可改字，「预览真实效果」所见即所得。</li>
+      <li><b>1. 上传照片</b>：点击 / 拖入 / Ctrl+V 粘贴，自动压缩优化；可裁剪取景、更换或移除。</li>
+      <li><b>2. 选择风格</b>：一键套用模板，或自选图案方式（手绘 / AI）、风格、标题、描述；纸张、字体、滤镜、编号等在「高级选项」里。</li>
+      <li><b>3. 预览与下载</b>：点「生成明信片」得到正/反面预览，再下载 PNG 套件、打印 PDF、A4 拼版或全套 ZIP；更多格式在展开项里。</li>
     </ol>
-    <p>成品横版 150×100mm（3:2），竖版照片可出 100×150mm（2:3）；已内置出血+裁剪线+600dpi导出；专业胶印请转CMYK，推荐 200g 以上铜版/哑粉纸。</p>
+    <p><b>关于 AI：</b>未配置 AI 密钥时「AI 风格化 / AI 背景 / 实景拼贴」会禁用，本地矢量手绘水彩可完整生成；配置密钥后可选 AI 图案，生成约 5–30 秒并可缓存复用。</p>
+    <p><b>关于 SVG：</b>SVG 与当前图案一致——AI 图案使用图生图结果矢量化，本地水彩使用原图。</p>
+    <p>成品横版 150×100mm（3:2），竖版照片可出 100×150mm（2:3）；导出已含出血 + 裁剪线 + 600dpi；专业胶印请转 CMYK，推荐 200g 以上铜版/哑粉纸。</p>
     <div class="note" style="display:block;border-top:1px solid #eee;padding-top:10px;margin-top:10px">
-      <b>功能一览</b>　8套模板 · 23+手绘元素 · 10纸张 · 字体含MiSans/粗斜体 · 滤镜/圆角/照片增强 · 裁剪取景+缩放 · AI识别(省token) · 画布实时预览编辑 · 高清PNG/打印PDF/A4拼版/全套ZIP/手机壁纸 · 作品存档/参数记忆 · 移动端适配 · 高峰时段倒计时
+      <b>功能一览</b>　8 套模板 · 手绘元素库 · 10 种纸张 · 字体含 MiSans/粗斜体 · 滤镜 / 圆角 / 照片增强 · 裁剪取景 + 缩放 · 画布微调（仅矢量手绘） · 高清 PNG / 打印 PDF / A4 拼版 / 全套 ZIP / 手机壁纸 / SVG / CMYK · 作品存档 / 参数记忆 · 移动端适配
     </div>
-    <!-- 「下次不再提示」被删掉了：引导只在点「使用引导」时出现，从不自动弹出，
-         所以这个勾选框承诺的事早已不存在，它写入的 ps_welcomed 也没有任何地方读。 -->
     <div class="mbtns"><button class="btn btn-primary" id="closeHelp">开始使用</button></div>
   </div>
 </div>
 
 <script>
 const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
 let photoData=null;
 let photoCrop=null, cropFocus={x:.5,y:.5}, cropZoom=1;
 let currentGenKey=null;
 let forceFresh=false;
 let photoImg=null, photoAspect=1;
-let AI_OK=true;              // recognition available (SiliconFlow or GLM)
-let GEN_OK=true;             // AI image generation available (SiliconFlow only)
-// Declared up here on purpose: loadState() further down restores this now, and `let` sits in its
-// temporal dead zone until its own line runs - a restored 图生图 mode used to throw right through the
-// page initialisation.
-let imgMode='standard';
-// The pattern 图生图 overrode, so leaving that mode can give it back. Without this, trying the mode
-// once rewrote the artwork choice to 「AI 文生图」 for the rest of the session - and now that the mode
-// itself is remembered, even across a reload.
-let imgModePattern=null;
-// Opening the page is a READ. The restore below fires real `change` events (the stored choices do
-// differ from the markup's defaults), and every one of them asks for a save - so merely visiting the
-// page rewrote ps_state, taking any key the page itself does not model with it. Suppressed until the
-// restore has finished.
+let AI_OK=false;              // AI is usable (key present and not blocked)
+let GEN_OK=true;              // AI image generation reachable
+let photoDate=null;
+// Opening the page is a READ: restoring the stored setup fires `change`/`input` through the same door
+// a user action does, so autosave and the modified-preview marker stay quiet until that is finished.
 let booting=true;
+let busy=false;
+let generated=false;
+let dirty=false;
 
 // ---- API base ----
 const API=(location.origin&&location.origin!=='null')?location.origin:'http://127.0.0.1:5179';
 
 // ---- palette + labels + boxes ----
 const STYLE_LABELS={handdrawn:'手绘',watercolor:'水彩',ink:'水墨',minimal:'极简',vintage:'复古',pastel:'治愈',film:'胶片',oil:'油画'};
-const ELEM_LABELS={mountain:'山峰',clouds:'云雾',forest:'松林',water:'水域',snow:'积雪',rock:'岩石',sky:'天空',birds:'飞鸟',sun:'太阳',plants:'植物',architecture:'建筑',building:'建筑',city:'城市',people:'人物',person:'人物',street:'街道',road:'街道',car:'车辆',vehicle:'车辆',taxi:'出租车',bus:'公交',sign:'招牌',signboard:'招牌',shop:'店铺',store:'店铺',boat:'帆船',ship:'船',sailboat:'帆船',sunset:'日落',sunrise:'日出',dusk:'黄昏',dawn:'黎明',night:'夜晚',mist:'薄雾',fog:'雾',reflection:'倒影',beach:'海滩',coast:'海岸',rainbow:'彩虹',stars:'星空',moon:'月亮',aurora:'极光',fireworks:'烟花',firework:'烟花',celebration:'庆典',train:'火车',tram:'电车',field:'球场',grass:'草地',meadow:'草地',pitch:'球场',stadium:'球场',goal:'球门',soccer:'足球',football:'足球',net:'球网',market:'集市',tent:'帐篷',camp:'露营',port:'码头',pier:'码头',dock:'码头',harbor:'港湾',lamp:'路灯',fence:'围栏',bench:'长椅'};
 const BOXES={mountain:[84,28,45,28],clouds:[92,26,26,9],forest:[82,57,59,13],water:[58,48,84,28],birds:[96,24,28,10],sun:[91,16,12,12],moon:[108,11,12,12],stars:[58,10,90,30],boat:[110,64,16,12],flowers:[56,38,22,24],skyline:[78,52,63,14],building:[78,52,63,14],people:[76,64,44,18],street:[58,74,84,8],car:[58,76.5,84,4],sign:[58,60,84,5],aurora:[58,12,90,32],fireworks:[86,14,40,32],train:[58,66,84,10],field:[58,50,84,30],goal:[114,46,20,18],tent:[96,40,26,30],market:[58,62,84,12],port:[58,62,84,12],metadata:[10,80,34,14],swatches:[118,76,18,3]};
+const LIB_KEYS=['sun','moon','clouds','birds','aurora','fireworks','stars','water','boat','skyline','building','people','street','car','sign','train','flowers','mountain','forest'];
 
 function selectedStyle(){const r=document.querySelector('#styleChips input[type=radio]:checked');return r?r.value:'default';}
-function selectedElements(){const out=[];document.querySelectorAll('#elemChips .chip.on').forEach(c=>out.push(c.dataset.v));return out;}
-function renderElemChips(list){
-  const box=$('#elemChips'); box.innerHTML='';
-  if(list&&list.length){list.forEach(v=>{const lab=ELEM_LABELS[v]||v;const c=document.createElement('label');c.className='chip on';c.dataset.v=v;c.innerHTML='<input type="checkbox" checked>'+lab;box.appendChild(c);});}
-  else{box.innerHTML='<span class="pill">未识别到明确元素，将用默认构图</span>';}
-}
 function extraElements(){const out=[];document.querySelectorAll('#libChips .chip.on').forEach(c=>out.push(c.dataset.v));return out;}
 function selectedPaper(){const r=document.querySelector('#paperChips input[type=radio]:checked');return r?r.value:'';}
 function selectedTfont(){const r=document.querySelector('#tfontChips input[type=radio]:checked');return r?r.value:'';}
@@ -467,45 +490,16 @@ function selectedBgMode(){const r=document.querySelector('#bgModeChips input[typ
 const OUT_OPTS=['swatches','show_date','want_back','rounded','enhance'];
 function getCheck(k,def){const i=document.querySelector('#outOpts input[data-k="'+k+'"]');return i?i.checked:!!def;}
 // ---- programmatic chip changes go through the same door a user click does ----
-// `change` is the single owner of everything that follows from a selection: the highlight, the AI
-// sub-switches and the autosave. These setters used to paint `.on` themselves and stop there, so
-// picking a 模板 (or loading a draft) left the chips looking perfect while localStorage kept the old
-// style and the sub-switches kept their old visibility - the mirror image of the label-click bug:
-// any path that mutates a chip without announcing it silently skips every consequence.
 function announce(i){if(i)i.dispatchEvent(new Event('change',{bubbles:true}));}
-// Text fields and sliders have the same two doors. Assigning `.value` fires nothing, so a title the
-// page chose for you (an AI read, a template, a rename from the canvas) never reached localStorage and
-// was gone after a reload - unless some other control happened to change in the same moment.
 function setTxt(sel,v){const el=$(sel);if(!el)return;if(el.value!==String(v)){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));}}
-// Only a real flip is announced, and a chip that did not flip is merely re-synced. Firing `change`
-// on the other 57 inputs of a group every time one of them changed is what made opening the page
-// write to localStorage 72 times over, and a `change` from an UNCHECKED radio is something the
-// browser never sends - so the handler filters on `i.checked`, and any future handler that forgets to
-// would blow up on those shadow events. Keeping the write and its announce on one line is also what
-// the selftest checks: "a line that writes `.checked` announces on that line".
 function setCheck(k,on){const i=document.querySelector('#outOpts input[data-k="'+k+'"]');if(!i)return;if(i.checked!==!!on){i.checked=!!on;announce(i);}else syncChip(i.closest('.chip'));}
-function refreshBgMode(){
-  // the two AI-background switches only mean something for the "aibg" pattern,
-  // and the text-to-image model is irrelevant once you ask for your own photo back
-  const ai=selectedPattern()==='aibg', mode=$('#bgModeChips'), model=$('#bgModelChips');
-  if(mode)mode.classList.toggle('hide',!ai);
-  if(model)model.classList.toggle('hide',!ai||selectedBgMode()!=='keywords');
-}
-// One flip per radio group: setting a radio to checked makes the browser uncheck its old sibling, so
-// the sibling arrives here already consistent and only needs its highlight re-synced.
 function setRadio(id,val){document.querySelectorAll(`#${id} .chip`).forEach(ch=>{const i=ch.querySelector('input');const on=(i.value===val);if(i.checked!==on){i.checked=on;announce(i);}else syncChip(ch);});}
 function setExtra(list){document.querySelectorAll('#libChips .chip').forEach(c=>{const i=c.querySelector('input');const on=list.includes(c.dataset.v);if(i.checked!==on){i.checked=on;announce(i);}else syncChip(c);});}
 function setRounded(on){setCheck('rounded',on);}
-
-// ---- the chip highlight follows the input's state, not the pointer ----
-// These chips used to be repainted from a `click` on the <label>. That fought the browser's own
-// activation of the wrapped input (checkbox chips never visibly changed) and it never fired for the
-// keyboard, so arrow-key selection changed the value while the highlight stayed behind. `change` is
-// the state, and it fires for pointer and keyboard alike.
 function syncChip(ch){
   const i=ch.querySelector('input');
   if(!i)return;
-  if(i.type==='radio'){                     // exactly one of a group can read as selected
+  if(i.type==='radio'){
     const grp=ch.closest('.opt');
     if(!grp)return;
     grp.querySelectorAll('.chip').forEach(x=>{const xi=x.querySelector('input');x.classList.toggle('on',!!(xi&&xi.checked));});
@@ -513,89 +507,100 @@ function syncChip(ch){
     ch.classList.toggle('on',i.checked);
   }
 }
-document.addEventListener('change',e=>{
-  const i=e.target;
-  if(!(i.matches&&i.matches('.chip input'))||!i.closest('.chip'))return;
-  syncChip(i.closest('.chip'));
-  // `checked` matters: setRadio() announces every chip of a group, and a handler that read `value`
-  // from any event would switch the mode to an option the user never picked.
-  if(i.name==='mode'&&i.checked)setMode(i.value);
-  // Anything that depends on "which option is selected now" belongs here. It used to sit on a label
-  // click wrapped in setTimeout(0) because the click landed before the radio settled its own state.
-  refreshBgMode();refreshAiUi();
-});
+function refreshBgMode(){
+  const ai=selectedPattern()==='aibg', mode=$('#bgModeChips'), model=$('#bgModelChips');
+  if(mode)mode.classList.toggle('hide',!ai);
+  if(model)model.classList.toggle('hide',!ai||selectedBgMode()!=='keywords');
+}
+function updateStyleNote(){
+  const el=$('#styleNote'); if(!el)return;
+  const st=selectedStyle();
+  el.textContent=st==='default'
+    ?'选风格会改变色板 / 纸张 / 线条气质；AI 图案下决定重绘风格。'
+    :('当前风格：'+(STYLE_LABELS[st]||st)+'（影响色板 / 纸张 / 线条气质）');
+}
 
 // ---- remember the setup as it is being changed ----
-// saveState() used to run only when 「生成」 was pressed, so tuning a chip and reloading lost it.
 let saveTimer=null;
 function queueSave(){if(booting)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveState,400);}
 document.addEventListener('change',queueSave);
 document.addEventListener('input',queueSave);
 
+document.addEventListener('change',e=>{
+  const i=e.target;
+  if(!(i.matches&&i.matches('.chip input'))||!i.closest('.chip'))return;
+  syncChip(i.closest('.chip'));
+  refreshBgMode();refreshAiUi();
+  updateStyleNote();
+  updateElemsSummary();
+  markDirty();
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t&&t.id==='draftName')return;
+  markDirty();
+});
+
+// ---- modified-preview marker ----
+// A download re-renders from the CURRENT settings on the server, so downloads stay usable; the marker
+// only says the on-screen preview is one generation behind.
+function markDirty(){
+  if(booting||!generated||dirty)return;
+  dirty=true;
+  currentGenKey=null;                 // don't let an export reuse the AI artwork of the previous settings
+  const p=$('#dirtyPill');if(p)p.hidden=false;
+}
+function clearDirty(){
+  dirty=false;
+  const p=$('#dirtyPill');if(p)p.hidden=true;
+}
+
 // ---- presets ----
 const PRESETS={
-  sunset:{style:'film',paper:'warm',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['water','sun','sunset','clouds'],extra:['boat','birds'],title:'SUNSET AT SEA'},
-  city:{style:'minimal',paper:'white',tfont:'hei',tstyle:'normal',filt:'none',rounded:false,elements:['building','people','street','sky'],extra:[],title:'CITY WALK'},
-  mountain:{style:'watercolor',paper:'ivory',tfont:'kai',tstyle:'normal',filt:'none',rounded:false,elements:['mountain','clouds','forest','snow'],extra:['birds'],title:'ALPINE RIDGE'},
+  sunset:{style:'film',paper:'warm',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['water','sun','clouds'],extra:['boat','birds'],title:'SUNSET AT SEA'},
+  city:{style:'minimal',paper:'white',tfont:'hei',tstyle:'normal',filt:'none',rounded:false,elements:['building','people','street'],extra:['skyline','car'],title:'CITY WALK'},
+  mountain:{style:'watercolor',paper:'ivory',tfont:'kai',tstyle:'normal',filt:'none',rounded:false,elements:['mountain','clouds','forest'],extra:['birds'],title:'ALPINE RIDGE'},
   minimal:{style:'minimal',paper:'white',tfont:'song',tstyle:'normal',filt:'bw',rounded:true,elements:['mountain','clouds'],extra:[],title:'MINIMAL'},
   vintage:{style:'vintage',paper:'kraft',tfont:'fang',tstyle:'normal',filt:'sepia',rounded:false,elements:['mountain','clouds','forest'],extra:[],title:'RETRO'},
-  night:{style:'vintage',paper:'midnight',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['moon','stars','water','night'],extra:['moon'],title:'STARRY NIGHT'},
-  aurora:{style:'vintage',paper:'midnight',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['aurora','moon','water','night'],extra:['aurora'],title:'POLAR NIGHT'},
-  festival:{style:'film',paper:'midnight',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['fireworks','moon','water','night'],extra:['fireworks'],title:'CELEBRATION'}
+  night:{style:'vintage',paper:'midnight',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['moon','stars','water'],extra:['moon'],title:'STARRY NIGHT'},
+  aurora:{style:'vintage',paper:'midnight',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['aurora','moon','water'],extra:['aurora'],title:'POLAR NIGHT'},
+  festival:{style:'film',paper:'midnight',tfont:'mi',tstyle:'normal',filt:'none',rounded:false,elements:['fireworks','moon','water'],extra:['fireworks'],title:'CELEBRATION'}
 };
+let presetName='';
 function applyPreset(name){
   const p=PRESETS[name]; if(!p)return;
   setRadio('styleChips',p.style); setRadio('paperChips',p.paper); setRadio('tfontChips',p.tfont);
   setRadio('tstyleChips',p.tstyle); setRadio('filtChips',p.filt||'none'); setRounded(!!p.rounded);
-  setExtra(p.extra||[]); if(p.title)setTxt('#title',p.title);
-  window.layout=null;
-  renderElemChips(p.elements||[]);
-  $('#templateNote').textContent='已应用「'+name+'」模板，可直接生成（或再识别覆盖）';
-}
-function applyPresetLook(name){
-  const p=PRESETS[name]; if(!p)return;
-  setRadio('styleChips',p.style); setRadio('paperChips',p.paper); setRadio('tfontChips',p.tfont);
-  setRadio('tstyleChips',p.tstyle); setRadio('filtChips',p.filt||'none'); setRounded(!!p.rounded);
-  if(p.title&&!$('#title').value.trim())setTxt('#title',p.title);
-  window.layout=null;
-  $('#templateNote').textContent='已自动推荐「'+name+'」外观（可再选模板/风格）';
-}
-function recommendTemplate(elems){
-  const e=new Set((elems||[]).map(x=>String(x).toLowerCase()));
-  if(e.has('aurora')||e.has('northern')||e.has('polar'))return 'aurora';
-  if(e.has('firework')||e.has('fireworks')||e.has('celebration'))return 'festival';
-  if(e.has('moon')||e.has('night')||e.has('star')||e.has('stars'))return 'night';
-  if(e.has('water')||e.has('sea')||e.has('ocean')||e.has('sunset')||e.has('sunrise')||e.has('boat')||e.has('sailboat'))return 'sunset';
-  if(e.has('building')||e.has('city')||e.has('street')||e.has('person')||e.has('people')||e.has('road'))return 'city';
-  if(e.has('mountain')||e.has('peak')||e.has('cliff'))return 'mountain';
-  return null;
+  // Templates used to fill a recognition-driven element row. That row is gone, so the composition
+  // elements are merged into the hand-drawn library selection (only keys the library actually has).
+  const merged=Array.from(new Set([...(p.extra||[]),...(p.elements||[]).filter(k=>LIB_KEYS.includes(k))]));
+  setExtra(merged); if(p.title)setTxt('#title',p.title);
+  window.layout=null; presetName=name;
+  $('#templateNote').textContent='已应用「'+name+'」模板，可继续改风格或直接生成';
 }
 document.querySelectorAll('#presetChips .chip').forEach(c=>{c.onclick=()=>applyPreset(c.dataset.p);});
 
 // ---- photo upload / compress ----
 // ---- EXIF 拍摄日期（只解析 JPEG；无 EXIF 或文件损坏时静默返回 null，绝不抛异常）----
-// compressImage() 会把照片重画进 canvas 再编码成 JPEG，EXIF 在这一步全部丢失，而服务端 read_date
-// 只认 EXIF，所以日期必须在压缩前从原始 File 里读出来，再随表单的 date 字段上传（YYYY-MM-DD）。
-let photoDate=null;
 function exifAscii(dv,base,entry,end){
-  if(entry.type!==2||entry.count<1||entry.count>64)return '';       // 只要 ASCII
-  const pos=entry.count>4?base+entry.val:entry.field;               // >4 字节时存偏移，否则内联
+  if(entry.type!==2||entry.count<1||entry.count>64)return '';
+  const pos=entry.count>4?base+entry.val:entry.field;
   if(pos<base||pos+entry.count>end)return '';
   let s='';
   for(let i=0;i<entry.count;i++){const c=dv.getUint8(pos+i);if(!c)break;s+=String.fromCharCode(c);}
   return s;
 }
 function exifDateText(s){
-  const m=String(s||'').match(/(\d{4})[:\-/.](\d{2})[:\-/.](\d{2})/);   // "2026:02:07 20:49:41"
+  const m=String(s||'').match(/(\d{4})[:\-/.](\d{2})[:\-/.](\d{2})/);
   if(!m)return null;
   const y=+m[1],mo=+m[2],d=+m[3];
-  if(y<1900||y>2200||mo<1||mo>12||d<1||d>31)return null;           // 全零等占位日期
+  if(y<1900||y>2200||mo<1||mo>12||d<1||d>31)return null;
   return m[1]+'-'+m[2]+'-'+m[3];
 }
 function exifIfd(dv,base,off,end){
   if(off<8||base+off+2>end)return null;
   const b0=dv.getUint8(base),b1=dv.getUint8(base+1);
-  const little=(b0===0x49&&b1===0x49);                         // 'II' 小端；'MM' 大端
+  const little=(b0===0x49&&b1===0x49);
   if(!little&&!(b0===0x4D&&b1===0x4D))return null;
   const p=base+off,count=dv.getUint16(p,little);
   if(count<1||count>512||p+2+count*12>end)return null;
@@ -614,18 +619,17 @@ function exifDateFromIfd(dv,base,list,tag,end){
 function exifDateFromBuffer(buf){
   try{
     const dv=new DataView(buf),len=dv.byteLength;
-    if(len<4||dv.getUint8(0)!==0xFF||dv.getUint8(1)!==0xD8)return null;   // 不是 JPEG
+    if(len<4||dv.getUint8(0)!==0xFF||dv.getUint8(1)!==0xD8)return null;
     let off=2;
     while(off+4<=len){
-      if(dv.getUint8(off)!==0xFF){off++;continue;}                 // 跳过填充字节
+      if(dv.getUint8(off)!==0xFF){off++;continue;}
       const marker=dv.getUint8(off+1);
       if(marker===0xFF){off++;continue;}
       if(marker===0xD8||marker===0x01||(marker>=0xD0&&marker<=0xD7)){off+=2;continue;}
-      if(marker===0xDA)break;                                      // 图像数据开始，前面没有 EXIF
-      const segLen=dv.getUint16(off+2,false);                      // 段长度始终大端
+      if(marker===0xDA)break;
+      const segLen=dv.getUint16(off+2,false);
       if(segLen<2)break;
       const next=off+2+segLen;
-      // APP1 + "Exif\0\0" 才是 EXIF；XMP/ICC 等同为 APP1 但要跳过
       if(marker===0xE1&&off+10<=len&&segLen>=8&&
          dv.getUint8(off+4)===0x45&&dv.getUint8(off+5)===0x78&&
          dv.getUint8(off+6)===0x69&&dv.getUint8(off+7)===0x66){
@@ -638,9 +642,9 @@ function exifDateFromBuffer(buf){
             if(ifd0){
               const ptr=ifd0.find(x=>x.tag===0x8769&&x.type===4);
               const exif=ptr?exifIfd(dv,base,ptr.val,end):null;
-              return (exif&&exifDateFromIfd(dv,base,exif,0x9003,end)) ||   // DateTimeOriginal 优先
-                     exifDateFromIfd(dv,base,ifd0,0x0132,end) ||            // 其次 DateTime
-                     (exif?exifDateFromIfd(dv,base,exif,0x9004,end):null);  // 最后 DateTimeDigitized
+              return (exif&&exifDateFromIfd(dv,base,exif,0x9003,end)) ||
+                     exifDateFromIfd(dv,base,ifd0,0x0132,end) ||
+                     (exif?exifDateFromIfd(dv,base,exif,0x9004,end):null);
             }
           }
         }
@@ -659,24 +663,65 @@ async function readPhotoDate(file){
     return exifDateFromBuffer(await file.arrayBuffer());
   }catch(e){return null;}
 }
-// ---- /EXIF 拍摄日期 ----
 function compressImage(file, maxEdge=2200, q=0.9){
   return new Promise((res,rej)=>{const img=new Image(); img.onload=()=>{const s=Math.min(1,maxEdge/Math.max(img.width,img.height));const w=Math.max(1,Math.round(img.width*s)),h=Math.max(1,Math.round(img.height*s));const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);const dataUrl=c.toDataURL('image/jpeg',q);c.toBlob(b=>res({dataUrl,blob:b}),'image/jpeg',q);}; img.onerror=rej; img.src=URL.createObjectURL(file);});
 }
+
+function resetPreviews(){
+  const f=$('#pv-front'),b=$('#pv-back'),ef=$('#img-front'),eb=$('#img-back');
+  if(f)f.hidden=true; if(b)b.hidden=true;
+  if(ef)ef.removeAttribute('src'); if(eb)eb.removeAttribute('src');
+  const empty=$('#previewEmpty'); if(empty)empty.hidden=false;
+  currentGenKey=null; generated=false; clearDirty();
+  const rg=$('#regenBtn'); if(rg)rg.classList.add('hide');
+  refreshGenButton();
+}
 function setPhoto(f){
-  if(!f)return; window.layout=null;
-  photoDate=null;                       // 换照片先清空，避免沿用上一张的拍摄日期
+  if(!f)return;
+  if(!(f.type||'').startsWith('image/')){
+    $('#uploadNote').textContent='只能上传图片文件（JPG / PNG / WebP 等）';return;
+  }
+  if(f.size>64*1024*1024){
+    $('#uploadNote').textContent='图片过大（上限 64MB），请先缩小或降低分辨率后再上传。';return;
+  }
+  window.layout=null; photoCrop=null; photoDate=null; cropFocus={x:.5,y:.5};
+  $('#cropHint').textContent='可选：框选照片重点，比例跟随卡片朝向';
   const dateP=readPhotoDate(f).then(d=>d||null);
-  Promise.all([compressImage(f),dateP]).then(([{dataUrl,blob},date])=>{photoDate=date;photoData=blob;$('#preview').src=dataUrl;$('#preview').style.display='block';$('#dropTxt').style.display='none';setPhotoAspect(dataUrl);$('#uploadNote').textContent='已载入照片（已压缩优化）';}).catch(()=>{photoData=f;$('#uploadNote').textContent='已载入照片';});
+  Promise.all([compressImage(f),dateP]).then(([{dataUrl,blob},date])=>{
+    photoData=blob; photoDate=date;
+    $('#preview').src=dataUrl; $('#preview').style.display='block';
+    $('#dropTxt').style.display='none';
+    setPhotoAspect(dataUrl);
+    setTxt('#date',date||'');
+    $('#uploadNote').textContent='已载入照片（已自动压缩优化）；拍摄日期 '+(date||'未读取到，可在高级选项里手填');
+    $('#changePhotoBtn').disabled=false; $('#removePhotoBtn').disabled=false; $('#cropBtn').disabled=false;
+    resetPreviews();
+    $('#status').textContent='照片已就绪，点「生成明信片」';
+    refreshDownloads();
+  }).catch(()=>{
+    $('#uploadNote').textContent='照片解码失败，请换一张 JPG / PNG 格式的照片。';
+  });
+}
+function removePhoto(){
+  photoData=null; photoImg=null; photoCrop=null; photoDate=null; currentGenKey=null;
+  const p=$('#preview'); p.style.display='none'; p.removeAttribute('src');
+  $('#dropTxt').style.display='block';
+  $('#photo').value='';
+  setTxt('#date','');
+  $('#uploadNote').textContent='已移除照片';
+  $('#changePhotoBtn').disabled=true; $('#removePhotoBtn').disabled=true; $('#cropBtn').disabled=true;
+  $('#cropHint').textContent='可选：框选照片重点，比例跟随卡片朝向';
+  resetPreviews(); refreshDownloads(); $('#status').textContent='';
+  window.layout=null;
 }
 function setPhotoAspect(src){const im=new Image();im.onload=()=>{photoImg=im;photoAspect=im.naturalHeight/im.naturalWidth;syncCropUI();};im.src=src;}
 $('#drop').onclick=()=>$('#photo').click();
-$('#photo').onchange=(e)=>setPhoto(e.target.files[0]);
+$('#changePhotoBtn').onclick=()=>$('#photo').click();
+$('#removePhotoBtn').onclick=removePhoto;
+$('#photo').onchange=(e)=>{const f=e.target.files&&e.target.files[0];if(f)setPhoto(f);e.target.value='';};
 // 键盘走同一扇门：Enter / Space 触发同一个文件选择框（与预览图、chip 同一套约定）
 $('#drop').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#photo').click();}});
-// 「点击或拖入一张照片」以前是个空头承诺：页面上没有任何 dragover / drop 处理，所以把照片
-// 拖进来时浏览器执行默认行为——把整个标签页导航到那张图，草稿、参数、照片全丢。
-// 现在：窗口级先兜住默认行为（丢在哪儿都不会翻页），只有落在 #drop 上才真的收图。
+// 窗口级兜底：丢在上传区外也不会让浏览器把整个页面导航到那张图。
 let dragDepth=0;
 const dropZone=$('#drop');
 window.addEventListener('dragover',e=>e.preventDefault());
@@ -687,32 +732,56 @@ dropZone.addEventListener('drop',e=>{dragDepth=0;dropZone.classList.remove('hot'
   const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
   if(f&&f.type.startsWith('image/'))setPhoto(f);
   else{$('#uploadNote').textContent='只能拖入图片文件';}});
+// Ctrl/Cmd+V 粘贴：截图工作流不用先存盘再选文件。
+document.addEventListener('paste',e=>{
+  if(booting)return;
+  const items=e.clipboardData&&e.clipboardData.items;
+  if(!items)return;
+  for(const it of items){
+    if(it.type&&it.type.startsWith('image/')){
+      const f=it.getAsFile();
+      if(f){e.preventDefault();setPhoto(f);}
+      return;
+    }
+  }
+});
 
-// ---- busy / progress ----
-// 慢渲染时所有导出入口都要一起静默：一次生成/导出没结束前，再点只是排第二次并发请求。
-let busy=false;
-function setBusy(on){
-  busy=!!on;
-  ['#genBtn','#aiBtn','#regenBtn','#pngSetBtn','#bundleBtn'].forEach(s=>{const el=$(s);if(el)el.disabled=busy;});
-  // <a> 没有 disabled 属性：用 aria-disabled + .is-busy（pointer-events:none）挡住鼠标，键盘回车由各点击处理器里的 busy 守卫兜住。
-  document.querySelectorAll('[data-dl]').forEach(el=>{
-    el.classList.toggle('is-busy',busy);
-    if(busy)el.setAttribute('aria-disabled','true');else el.removeAttribute('aria-disabled');
-  });
-}
+// ---- busy / progress / status ----
+function animateBar(el,on){const fill=el.querySelector('i');if(on){el.style.display='block';fill.style.width='0%';el._iv=setInterval(()=>{const w=Math.min(parseInt(fill.style.width||'0')+5,90);fill.style.width=w+'%';},160);}else{if(el._iv)clearInterval(el._iv);fill.style.width='100%';setTimeout(()=>{el.style.display='none';fill.style.width='0%';},360);}}
 function showHint(msg){const h=$('#genHint');if(h)h.textContent=msg||'';}
 function showBanner(msg,ok){const b=$('#aiBanner');if(!b)return;b.textContent=msg||'';b.classList.toggle('ok',!!ok);}
-function animateBar(el,on){const fill=el.querySelector('i');if(on){el.style.display='block';fill.style.width='0%';el._iv=setInterval(()=>{const w=Math.min(parseInt(fill.style.width||'0')+5,90);fill.style.width=w+'%';},160);}else{if(el._iv)clearInterval(el._iv);fill.style.width='100%';setTimeout(()=>{el.style.display='none';fill.style.width='0%';},360);}}
+function setBusy(on){
+  busy=!!on;
+  refreshGenButton();
+  refreshDownloads();
+  syncVectorOnlyControls();
+}
+function refreshGenButton(){
+  const b=$('#genBtn'); if(!b)return;
+  b.disabled=busy||!photoData;
+  b.textContent=generated?'重新生成':'生成明信片';
+}
+function refreshDownloads(){
+  const on=!!photoData&&!busy;
+  ['#pngSetBtn','#bundleBtn'].forEach(s=>{const el=$(s);if(el)el.disabled=!on;});
+  document.querySelectorAll('[data-dl]').forEach(el=>{
+    el.disabled=!on;
+    el.classList.toggle('is-busy',!on);
+    if(!on)el.setAttribute('aria-disabled','true');else el.removeAttribute('aria-disabled');
+  });
+  const eb=$('#editBtn');
+  if(eb)eb.disabled=!photoData||busy||isAI();
+}
 
 // ---- build form ----
 function buildBaseFD(){
   const fd=new FormData();
-  fd.append('photo',photoData);
+  if(photoData)fd.append('photo',photoData);
   fd.append('title',$('#title').value);
-  fd.append('date',photoDate||'');      // 原始 JPEG 的 EXIF 拍摄日期（YYYY-MM-DD），空串交给服务端兜底
-  fd.append('use_ai',($('#title').value.trim()==='')?'1':'0');
-  fd.append('elements',JSON.stringify(selectedElements()));
-  fd.append('extra',JSON.stringify(extraElements()));
+  fd.append('number',$('#number').value);
+  fd.append('date',$('#date').value);
+  fd.append('elements','[]');                                  // 识别流程已移除，元素全部走 extra
+  fd.append('extra',JSON.stringify(isAI()?[]:extraElements())); // 手绘元素只在手绘图案下生效
   fd.append('style',selectedStyle());
   fd.append('desc',$('#desc').value);
   fd.append('layout',JSON.stringify(window.layout||null));
@@ -735,47 +804,48 @@ function buildBaseFD(){
   return fd;
 }
 
-// ---- recognize ----
-$('#aiBtn').onclick=async()=>{
-  if(!photoData){alert('请先上传照片');return}
-  setBusy(true); animateBar($('#aiBar'),true); $('#aiStatus').textContent='AI 正在识别图片元素…'; $('#aiNote').textContent='';
-  try{const fd=new FormData();fd.append('photo',photoData);fd.append('desc',$('#desc').value);const r=await fetch(API+'/analyze',{method:'POST',body:fd});const j=await r.json();
-    window.layout=null; renderElemChips(j.elements);
-    if(j.elements&&j.elements.length){$('#elemChips').scrollIntoView({behavior:'smooth',block:'nearest'});}
-    if(j.title&&!$('#title').value.trim())setTxt('#title',j.title);
-    if(j.colors&&j.colors.length===3){const sw=$('#swatches');sw.style.display='flex';sw.innerHTML='';j.colors.forEach(c=>{const s=document.createElement('span');s.style.background=c;sw.appendChild(s)});}
-    if(j.style&&STYLE_LABELS[j.style])setStyle(j.style);
-    if(selectedStyle()==='default'||selectedStyle()===''){const rec=recommendTemplate(j.elements||[]);if(rec)applyPresetLook(rec);}
-    $('#styleNote').textContent=j.style&&STYLE_LABELS[j.style]?('AI 推荐风格：'+STYLE_LABELS[j.style]+'（可改选）'):'可自行点选风格，或填写描述';
-    $('#aiNote').textContent=(j.note?(j.note+'　'):'')+'已识别 '+((j.elements||[]).length)+' 个元素，可勾选筛选'+((j.date)?('　日期：'+j.date):'');
-    $('#aiStatus').textContent='识别完成';
-  }catch(e){$('#aiStatus').textContent='连接生成服务失败：'+(e&&e.message?e.message:'');}
-  setBusy(false); animateBar($('#aiBar'),false);
-};
-// the one style setter: it used to duplicate setRadio for this group, which meant a fix to the
-// announce path could be applied and still leave the AI-recognised style unpersisted.
-function setStyle(v){setRadio('styleChips',v);}
-
 // ---- generate ----
+function needPhoto(){
+  if(photoData)return false;
+  $('#status').textContent='请先上传照片';
+  const d=$('#drop'); if(d)d.focus();
+  return true;
+}
 async function callGen(freshNow){
-  if(!photoData){alert('请先上传照片');return}
+  if(needPhoto()||busy)return;
   setBusy(true); saveState(); animateBar($('#bar'),true);
   currentGenKey=Date.now()+'-'+Math.floor(Math.random()*1e9);
   forceFresh=!!freshNow;
-  const t2iMode=isAI();
-  $('#status').textContent=t2iMode?'AI 正在生成背景/图生图…（同一照片会复用缓存，约 5-30 秒）':'生成中…';
-  try{const fd=buildBaseFD();const r=await fetch(API+'/generate',{method:'POST',body:fd});const j=await r.json();
+  const ai=isAI();
+  showHint('');
+  setStepActive(3);
+  $('#status').textContent=ai?'AI 正在生成图案…（同一照片会复用缓存，约 5–30 秒）':'正在生成水彩明信片…';
+  if(window.matchMedia('(max-width:1024px)').matches){const s=$('#sec-generate');if(s)s.scrollIntoView({behavior:'smooth',block:'start'});}
+  try{
+    const fd=buildBaseFD();
+    const r=await fetch(API+'/generate',{method:'POST',body:fd});
+    const j=await r.json();
     if(j.error){$('#status').textContent='生成失败：'+j.error;showHint('');}
-    else{$('#img-front').src=j.front;$('#pv-front').style.display='block';if(j.back){$('#img-back').src=j.back;$('#pv-back').style.display='block';}else{$('#pv-back').style.display='none';}$('#status').textContent=isAI()?'已生成（已缓存；可点「换一张」强制重绘）':'已生成（可用下方「高清/打印版」导出）';$('#regenBtn').style.display=isAI()?'inline-block':'none';showHint(j.ai_note||'');if(j.ai_note)refreshStatus();}
-  }catch(e){$('#status').textContent='请求失败：'+(e&&e.message?e.message:'');}
+    else{
+      $('#img-front').src=j.front; $('#pv-front').hidden=false;
+      if(j.back){$('#img-back').src=j.back; $('#pv-back').hidden=false;}
+      else{$('#pv-back').hidden=true; $('#img-back').removeAttribute('src');}
+      $('#previewEmpty').hidden=true;
+      generated=true; clearDirty();
+      $('#regenBtn').classList.toggle('hide',!ai);
+      $('#status').textContent=ai?'已生成（缓存可复用；点「换一张 AI 场景」强制重绘）':'已生成（可预览 / 下载，或继续微调后重新生成）';
+      showHint(j.ai_note||'');
+      refreshGenButton();
+    }
+  }catch(e){$('#status').textContent='请求失败：'+((e&&e.message)||'无法连接本地服务');}
   finally{forceFresh=false;setBusy(false);animateBar($('#bar'),false);}
 }
 $('#genBtn').onclick=()=>callGen(false);
 $('#regenBtn').onclick=()=>{if(isAI()){callGen(true);}};
 
-// ---- export / bundle / svg ----
+// ---- export / bundle ----
 function safeName(s){return ((s||'postcard').trim().replace(/[^\w\u4e00-\u9fff-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40))||'postcard';}
-function dlName(kind,name){return safeName($('#title').value)+'-'+name.replace(/^postcard-?/,'');}
+function dlName(kind,name){return safeName($('#title').value)+'-'+String(name||kind).replace(/^postcard-?/,'');}
 function exportErrText(err){
   const m=err&&err.message?String(err.message).trim():'';
   return m||'网络异常，请确认本地服务仍在运行';
@@ -786,7 +856,6 @@ async function downloadExport(fd,kind,name){
   try{r=await fetch(API+'/export',{method:'POST',body:fd});}
   catch(e){throw new Error('网络异常：'+((e&&e.message)||'无法连接导出服务'));}
   if(!r.ok){
-    // 服务端出错时返回的是 JSON {error: ...}，把它读出来给用户看；非 JSON 时才退回状态码文案
     let msg='';
     try{const j=await r.json();msg=(j&&(j.error||j.message))||'';}catch(e){}
     throw new Error(msg?String(msg):('导出失败（服务返回 HTTP '+r.status+'）'));
@@ -794,26 +863,26 @@ async function downloadExport(fd,kind,name){
   const blob=await r.blob(); const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=dlName(kind,name);a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-document.querySelectorAll('[data-dl]').forEach(a=>{a.onclick=async(e)=>{
+document.querySelectorAll('[data-dl]').forEach(el=>{el.onclick=async(e)=>{
   e.preventDefault();
-  if(busy||a.getAttribute('aria-disabled')==='true')return;      // 慢渲染时不排队第二次导出
-  if(!photoData){alert('请先上传照片');return}
-  setBusy(true);$('#status').textContent='导出高清/打印文件…';
-  try{await downloadExport(buildBaseFD(),a.dataset.dl,a.dataset.name);$('#status').textContent='已导出 '+a.dataset.name;}
+  if(busy||el.disabled)return;
+  if(needPhoto())return;
+  setBusy(true);$('#status').textContent='正在导出 '+(el.dataset.name||el.dataset.dl)+'…';
+  try{await downloadExport(buildBaseFD(),el.dataset.dl,el.dataset.name);$('#status').textContent='已导出 '+(el.dataset.name||el.dataset.dl);}
   catch(err){$('#status').textContent='导出失败：'+exportErrText(err);}
   finally{setBusy(false);}
 };});
 $('#pngSetBtn').onclick=async()=>{
   if(busy)return;
-  if(!photoData){alert('请先上传照片');return}
+  if(needPhoto())return;
   setBusy(true);$('#status').textContent='正在输出一套 PNG…';
-  try{await downloadExport(buildBaseFD(),'pngset','postcard-PNG套件.zip');$('#status').textContent='已输出一套 PNG（正面600dpi / 背面600dpi / 手机壁纸）';}
+  try{await downloadExport(buildBaseFD(),'pngset','postcard-PNG套件.zip');$('#status').textContent='已输出一套 PNG（正面 600dpi / 背面 600dpi / 手机壁纸）';}
   catch(e){$('#status').textContent='输出失败：'+exportErrText(e);}
   finally{setBusy(false);}
 };
 $('#bundleBtn').onclick=async()=>{
   if(busy)return;
-  if(!photoData){alert('请先上传照片');return}
+  if(needPhoto())return;
   setBusy(true);$('#status').textContent='正在打包全套文件…';
   try{
     const r=await fetch(API+'/bundle',{method:'POST',body:buildBaseFD()});
@@ -830,68 +899,205 @@ $('#bundleBtn').onclick=async()=>{
 // ---- drafts ----
 function loadDrafts(){try{return JSON.parse(localStorage.getItem('ps_drafts')||'[]');}catch(e){return [];}}
 function captureAll(){
-  const o={title:$('#title').value,location:$('#location').value,desc:$('#desc').value,tags:$('#tags').value,
+  const o={_v:2,title:$('#title').value,location:$('#location').value,date:$('#date').value,number:$('#number').value,
+           desc:$('#desc').value,tags:$('#tags').value,
            style:selectedStyle(),paper:selectedPaper(),tfont:selectedTfont(),tstyle:selectedTstyle(),filt:selectedFilt(),
            pattern:selectedPattern(),orient:selectedOrient(),bg_mode:selectedBgMode(),bg_model:selectedBgModel(),
-           mode:imgMode,pattern_pre:imgModePattern,
            glass_a:$('#glassA').value,glass_b:$('#glassB').value,
-           elements:selectedElements(),extra:extraElements(),layout:window.layout||null,crop:photoCrop,crop_zoom:cropZoom};
+           extra:extraElements(),layout:window.layout||null,crop:photoCrop,crop_zoom:cropZoom};
   OUT_OPTS.forEach(k=>o[k]=getCheck(k,k!=='rounded'&&k!=='enhance'));
   return o;
+}
+function migrateState(s){
+  if(!s||typeof s!=='object')return null;
+  if(s._v===2)return s;
+  const out=Object.assign({},s,{_v:2});
+  // The old wizard stored a mode and a recognition element list; neither exists any more. The
+  // recognition result is mapped onto library keys so the restored card keeps some composition.
+  const mapped=Array.isArray(s.elements)?s.elements.filter(e=>LIB_KEYS.includes(e)):[];
+  out.extra=Array.from(new Set([...(Array.isArray(s.extra)?s.extra:[]),...mapped]));
+  delete out.mode; delete out.pattern_pre; delete out.elements;
+  if(typeof out.date!=='string')out.date='';
+  if(typeof out.number!=='string')out.number='';
+  return out;
 }
 function applyUi(s){
   if(!s)return;
   setTxt('#title',s.title||'');setTxt('#location',s.location||'');setTxt('#desc',s.desc||'');setTxt('#tags',s.tags||'');
+  setTxt('#date',s.date||'');setTxt('#number',s.number||'');
   setRadio('styleChips',s.style||'default');setRadio('paperChips',s.paper||'');setRadio('tfontChips',s.tfont||'');
   setRadio('tstyleChips',s.tstyle||'normal');setRadio('filtChips',s.filt||'none');
   setRadio('patternChips',s.pattern||'handdrawn');setRadio('orientChips',s.orient||'auto');
   setRadio('bgModeChips',s.bg_mode||'keywords');setRadio('bgModelChips',s.bg_model||'quality');
-  // the two readouts come along for free: setTxt fires the same `input` the user's drag fires
   setTxt('#glassA',s.glass_a||55);setTxt('#glassB',s.glass_b||3);
   OUT_OPTS.forEach(k=>setCheck(k,s[k]===undefined?(k!=='rounded'&&k!=='enhance'):!!s[k]));
-  renderElemChips(s.elements||[]);setExtra(s.extra||[]);
+  setExtra(s.extra||[]);
   window.layout=s.layout||null;photoCrop=s.crop||null;
-  // cropZoom belongs to the framing box: without it a restored crop is refitted at 1.0x and the
-  // zoomed-in composition the user picked silently opens back up to the whole photo. Its `input`
-  // handler owns the variable, the readout and the repaint.
   if(s.crop_zoom>=1&&s.crop_zoom<=3)setTxt('#cropZoom',s.crop_zoom);
   if(photoCrop)$('#cropHint').textContent='已取景（可再次调整）';
-  // Last, on purpose: 图生图 forces the pattern to t2i, so restoring the mode before the pattern
-  // would let the pattern win and hand back a half-restored setup.
-  if(s.mode==='img2img'||s.mode==='standard')setRadio('modeChips',s.mode);
-  // ...and the pattern it overrode is restored after that, because entering 图生图 during the
-  // re-render above just re-snapshotted the (already forced) t2i value.
-  imgModePattern=(typeof s.pattern_pre==='string'&&s.pattern_pre)?s.pattern_pre:null;
-  refreshBgMode();
+  refreshBgMode();refreshAiUi();
 }
 function saveState(){localStorage.setItem('ps_state',JSON.stringify(captureAll()));}
-function loadState(){try{applyUi(JSON.parse(localStorage.getItem('ps_state')||'null'));}catch(e){}}
-loadState();
-booting=false;                    // from here on, a change is something the user did
-function applyDraft(d){applyUi(d);$('#draftName').value='';$('#status').textContent='已载入草稿「'+(d.name||'')+'」，可生成/编辑';}
+function loadState(){
+  try{
+    const s=migrateState(JSON.parse(localStorage.getItem('ps_state')||'null'));
+    if(s){applyUi(s);localStorage.setItem('ps_state',JSON.stringify(captureAll()));}
+  }catch(e){}
+}
+function applyDraft(d){
+  applyUi(migrateState(d));
+  $('#draftName').value='';
+  $('#status').textContent='已载入草稿「'+(d.name||'')+'」，可生成或继续微调';
+  markDirty();
+}
 function renderDrafts(){const box=$('#draftList');box.innerHTML='';const ds=loadDrafts();if(!ds.length){box.innerHTML='<span class="pill">尚未存档——配置好后点「保存为草稿」</span>';return;}ds.forEach(d=>{const c=document.createElement('div');c.className='pill';c.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0;justify-content:space-between';const name=document.createElement('span');name.textContent='存档 '+(d.name||'未命名');const ops=document.createElement('span');ops.style.cssText='display:flex;gap:6px';const l=document.createElement('button');l.className='btn btn-ai';l.textContent='载入';l.onclick=()=>applyDraft(d);const x=document.createElement('button');x.className='btn btn-ai';x.textContent='删除';x.onclick=()=>{localStorage.setItem('ps_drafts',JSON.stringify(loadDrafts().filter(xx=>xx.name!==d.name)));renderDrafts();};ops.append(l,x);c.append(name,ops);box.append(c);});}
 $('#saveDraftBtn').onclick=()=>{const name=($('#draftName').value||'').trim()||('方案'+(loadDrafts().length+1));const ds=loadDrafts().filter(d=>d.name!==name);ds.unshift(Object.assign({name},captureAll()));if(ds.length>30)ds.length=30;localStorage.setItem('ps_drafts',JSON.stringify(ds));renderDrafts();$('#status').textContent='已保存草稿「'+name+'」';};
-renderDrafts();
 
-// ---- editor ----
-// Both drawing surfaces kept a hardcoded buffer: the editor never left its 900x600 markup value, so an
-// ~800px box on a 1.5x screen made the browser resample the canvas twice - down to fit the CSS box, up
-// to fit the device pixel grid. That is what turned the 1px guide lines grey and the whole preview
-// soft. The buffer is now derived from the element's own rect x devicePixelRatio, and `EDK`/`CDK`
-// (device px per CSS px) scales the few stroke widths and grab ranges that are really CSS pixels.
+// ---- vector-only controls / AI availability ----
+function updateElemsSummary(){
+  const s=$('#elemsSummary'); if(!s)return;
+  s.textContent='高级选项：手绘元素（已选 '+extraElements().length+'）';
+}
+function updatePatternNote(){
+  const map={handdrawn:'本地矢量水彩/手绘引擎，无需 AI 密钥，离线可生成。',
+             t2i:'AI 风格化（图生图）：保留照片主体，按所选风格重绘，约 5–30 秒。',
+             aibg:'AI 背景：按描述生成场景图；可选关键词文生图或用照片风格化。',
+             zine:'实景拼贴：照片重绘为水彩，再做成撕纸拼贴（Zine 风）。'};
+  const el=$('#patternNote'); if(el)el.textContent=map[selectedPattern()]||map.handdrawn;
+}
+function syncVectorOnlyControls(){
+  const ai=isAI();
+  const box=$('#advElems');
+  if(box){box.classList.toggle('hide',ai);if(ai)box.open=false;}
+  const eb=$('#editBtn');
+  if(eb){eb.disabled=busy||!photoData||ai;eb.title=ai?'AI 图案不支持版式微调，请切换到手绘图案':'仅矢量手绘图案有效';}
+  const note=$('#editNote');
+  if(note)note.textContent=ai?'AI 图案不支持版式微调；切到「手绘水彩」后可调整元素位置。':'仅矢量手绘生效；AI 图案会忽略布局。';
+  const rg=$('#regenBtn');
+  if(rg)rg.classList.toggle('hide',!ai||!generated);
+}
+function refreshAiUi(){
+  $$('#patternChips .chip').forEach(ch=>{
+    const inp=ch.querySelector('input');
+    const ai=inp.value!=='handdrawn';
+    inp.disabled=ai&&!GEN_OK;
+    ch.classList.toggle('chip-dim',ai&&!GEN_OK);
+    ch.title=(ai&&!GEN_OK)?'AI 图案需要可用的 SILICONFLOW_API_KEY；当前不可用，本地手绘可直接使用。':'';
+  });
+  if(!GEN_OK&&isAI())setRadio('patternChips','handdrawn');
+  refreshBgMode();
+  updatePatternNote();
+  updateElemsSummary();
+  syncVectorOnlyControls();
+  syncCropUI();
+}
+function refreshStatus(){
+  fetch(API+'/status').then(r=>r.ok?r.json():null).then(j=>{
+    if(!j)return;
+    AI_OK=!!(j.ai_key&&!j.blocked);
+    GEN_OK=AI_OK;
+    const m=j.models||{};
+    if(j.blocked)showBanner(j.blocked);
+    else if(!j.ai_key)showBanner('未检测到 AI 密钥：AI 图案已禁用，本地矢量手绘 / 水彩可完整使用。在 app.py 同目录的 .env 写入 SILICONFLOW_API_KEY 后重启服务即可启用 AI。');
+    else showBanner('AI 已就绪：风格化 '+(m.edit||'-')+' · 背景 '+(m.quality_bg||m.free_bg||m.generation||'-'),true);
+    refreshAiUi();
+  }).catch(()=>{showBanner('无法读取 AI 状态（本地服务未连接）；本地手绘仍可生成。');});
+}
+
+// ---- dialogs ----
+// 弹窗只通过 openModal/closeModal 开关：类、焦点、aria 全在这一扇门里，Esc / Tab 圈定 / 焦点归还
+// 对每个弹窗（含画布微调）都成立。
+const OPENER={};
+const FOCUSABLE='button,[href],input:not([type=hidden]),select,textarea,[tabindex]:not([tabindex="-1"])';
+function dialogFocusables(m){
+  return [...m.querySelectorAll(FOCUSABLE)].filter(el=>!el.disabled&&!el.closest('[hidden]'));
+}
+function dismiss(m){
+  const c=m.dataset.cancel&&$('#'+m.dataset.cancel);
+  if(c)c.click();else closeModal(m.id);
+}
+function openModal(id){
+  const m=$('#'+id);if(!m)return null;
+  if(!m.getAttribute('role')){
+    m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
+    m.tabIndex=-1;
+    const h=m.querySelector('h2,h3');
+    if(h){if(!h.id)h.id=id+'Title';m.setAttribute('aria-labelledby',h.id);}
+  }
+  OPENER[id]=document.activeElement;
+  m.classList.add('show');
+  m.focus();
+  return m;
+}
+function closeModal(id){
+  const m=$('#'+id);if(!m||!m.classList.contains('show'))return;
+  m.classList.remove('show');
+  const op=OPENER[id];OPENER[id]=null;
+  if(op&&op.focus&&document.contains(op))op.focus();
+}
+window.addEventListener('keydown',e=>{
+  const m=document.querySelector('.modal.show');if(!m)return;
+  if(e.key==='Escape'){e.preventDefault();dismiss(m);return;}
+  if(e.key!=='Tab')return;
+  const f=dialogFocusables(m);if(!f.length)return;
+  const first=f[0],last=f[f.length-1],a=document.activeElement;
+  if(e.shiftKey&&(a===first||a===m)){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&a===last){e.preventDefault();first.focus();}
+});
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
+  if(e.target===m)dismiss(m);
+}));
+
+// ---- crop ----
+// The framing box must match the card the server will actually draw. The vector engine always lays
+// out 150x100mm, while an AI pattern honours `orient` and can return a 100x150mm card.
+function portraitCard(){
+  const o=selectedOrient();
+  if(o==='landscape')return false;
+  if(!isAI()||!GEN_OK)return false;          // the vector engine is landscape by design
+  return o==='portrait'||(o==='auto'&&photoAspect>1);
+}
+function cropAr(){return portraitCard()?(100/150):1.5;}
+function cropLabel(){return portraitCard()?'2:3':'3:2';}
+function syncCropUI(){
+  const b=$('#cropBtn');if(b)b.textContent='裁剪取景('+cropLabel()+')';
+  const t=$('#cropTitle');if(t)t.textContent='裁剪取景（'+cropLabel()+'，拖动框选重点）';
+  const p=$('#specPill');if(p)p.textContent=portraitCard()?'竖版 100×150mm（2:3）':'横版 150×100mm（3:2）';
+  if(photoImg&&photoCrop&&cropFocus)photoCrop=cropBoxFor(cropFocus.x,cropFocus.y);
+}
+function cropBoxFor(fx,fy){if(!photoImg)return null;const W=photoImg.naturalWidth,H=photoImg.naturalHeight;const AR=cropAr();let cw,ch;if(W/H>AR){cw=H*AR;ch=H;}else{cw=W;ch=W/AR;}cw/=cropZoom;ch/=cropZoom;let left=fx*W-cw/2;left=Math.max(0,Math.min(W-cw,left));let top=fy*H-ch/2;top=Math.max(0,Math.min(H-ch,top));return {x:left/W,y:top/H,w:cw/W,h:ch/H};}
+function openCrop(){if(!photoImg){$('#status').textContent='请先上传照片';return;}if(!cropFocus)cropFocus={x:.5,y:.5};syncCropUI();openModal('cropModal');drawCrop();}
+function drawCrop(){if(!photoImg)return;const cv=$('#cropCv'),ctx=cv.getContext('2d');const fitted=fitCanvas(cv,0.62);if(!fitted){cv.width=Math.max(240,cv.width);cv.height=Math.round(cv.width*0.62);}const CDK=fitted||1,cw=cv.width,ch=cv.height;const W=photoImg.naturalWidth,H=photoImg.naturalHeight;const sc=Math.min(cw/W,ch/H*0.9),dw=W*sc,dh=H*sc,ox=(cw-dw)/2,oy=(ch-dh)/2;ctx.fillStyle='#111';ctx.fillRect(0,0,cw,ch);ctx.drawImage(photoImg,ox,oy,dw,dh);const cb=cropBoxFor(cropFocus.x,cropFocus.y);const bx=ox+cb.x*W*sc,by=oy+cb.y*H*sc,bw=cb.w*W*sc,bh=cb.h*H*sc;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,cw,by);ctx.fillRect(0,by+bh,cw,ch-by-bh);ctx.fillRect(0,by,bx,bh);ctx.fillRect(bx+bw,by,cw-bx-bw,bh);ctx.strokeStyle='#4fd1ff';ctx.lineWidth=2*CDK;ctx.strokeRect(bx,by,bw,bh);const fx=ox+cropFocus.x*W*sc,fy=oy+cropFocus.y*H*sc;ctx.beginPath();ctx.moveTo(fx-8*CDK,fy);ctx.lineTo(fx+8*CDK,fy);ctx.moveTo(fx,fy-8*CDK);ctx.lineTo(fx,fy+8*CDK);ctx.stroke();}
+function cropPointer(e){const cv=$('#cropCv'),rect=cv.getBoundingClientRect();const px=(e.clientX-rect.left)/rect.width,py=(e.clientY-rect.top)/rect.height;const cw=cv.width,ch=cv.height,W=photoImg.naturalWidth,H=photoImg.naturalHeight;const sc=Math.min(cw/W,ch/H*0.9),dw=W*sc,dh=H*sc,ox=(cw-dw)/2,oy=(ch-dh)/2;cropFocus.x=Math.max(0,Math.min(1,(px*cw-ox)/dw));cropFocus.y=Math.max(0,Math.min(1,(py*ch-oy)/dh));drawCrop();}
+let cropDown=false;
+$('#cropBtn').onclick=openCrop;
+$('#cropCv').addEventListener('pointerdown',e=>{cropDown=true;try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}cropPointer(e);});
+$('#cropCv').addEventListener('pointermove',e=>{if(cropDown)cropPointer(e);});
+$('#cropCv').addEventListener('pointercancel',()=>{cropDown=false;});
+window.addEventListener('pointerup',()=>{cropDown=false;});
+$('#cropZoom').oninput=(e)=>{cropZoom=parseFloat(e.target.value);$('#cropZoomVal').textContent=cropZoom.toFixed(1)+'×';drawCrop();};
+$('#cropOk').onclick=()=>{const b=cropBoxFor(cropFocus.x,cropFocus.y);if(b){photoCrop=b;saveState();}$('#cropHint').textContent='已取景（可再次调整）';markDirty();closeModal('cropModal');};
+$('#cropCancel').onclick=()=>closeModal('cropModal');
+$('#cropReset').onclick=()=>{cropFocus={x:.5,y:.5};setTxt('#cropZoom',1);photoCrop=null;saveState();drawCrop();};
+
+// ---- canvas editor (advanced fine-tune, vector hand-drawn only) ----
+// Both drawing surfaces keep a backing store derived from their own box: a hardcoded buffer made the
+// browser resample twice and turned 1px guides grey.
 function fitCanvas(cv,ratio){
   const r=cv.getBoundingClientRect();
-  if(!r.width)return 0;                        // a display:none step has no box to fit yet
+  if(!r.width)return 0;                        // a hidden dialog has no box to fit yet
   const dpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
   const w=Math.round(r.width*dpr),h=Math.round(w*ratio);
-  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}   // assigning either one clears the canvas
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
   return cv.width/r.width;
 }
 let SCALE=900/150,EDK=1;
 let edCv=$('#editor'),edCtx=edCv.getContext('2d'),editorEls=[],selIdx=-1,dragMode=null,hist=[],hIdx=-1,realBg=null,liveTimer=null;
 function fitEditor(){const f=fitCanvas(edCv,100/150);if(!f)return;EDK=f;SCALE=edCv.width/150;}
-// Resizing the window changes the box the buffer has to match. Refit whichever surface is on screen.
-window.addEventListener('resize',()=>{if(document.querySelector('.step.active[data-step="5"]'))drawEditor();if($('#cropModal').classList.contains('show'))drawCrop();});
+window.addEventListener('resize',()=>{
+  const em=$('#editorModal'); if(em&&em.classList.contains('show'))drawEditor();
+  if($('#cropModal').classList.contains('show'))drawCrop();
+});
 function round(n){return Math.round(n*10)/10;}
 function snap(){hist=hist.slice(0,hIdx+1);hist.push(editorEls.map(e=>({...e})));if(hist.length>40)hist.shift();hIdx=hist.length-1;}
 function drawGlyph(el){const x=el.x*SCALE,y=el.y*SCALE,w=el.w*SCALE,h=el.h*SCALE;edCtx.save();const cx=x+w/2,cy=y+h/2;if(el.rot){edCtx.translate(cx,cy);edCtx.rotate(el.rot*Math.PI/180);edCtx.translate(-cx,-cy);}
@@ -903,20 +1109,18 @@ function drawGlyph(el){const x=el.x*SCALE,y=el.y*SCALE,w=el.w*SCALE,h=el.h*SCALE
 function drawEditor(){fitEditor();edCtx.clearRect(0,0,edCv.width,edCv.height);if(realBg)edCtx.drawImage(realBg,0,0,edCv.width,edCv.height);else{edCtx.fillStyle='#f6f1e7';edCtx.fillRect(0,0,edCv.width,edCv.height);}
   editorEls.forEach((el,i)=>{drawGlyph(el);if(i===selIdx)drawBox(el);});}
 function defaultPhotoBox(){const pw=46.0;let ph=pw*photoAspect;if(ph>62)ph=62.0;return {x:9,y:9,w:pw,h:ph};}
-function buildEditor(){editorEls=[];selIdx=-1;if(Array.isArray(window.layout)&&window.layout.length){editorEls=window.layout.map(o=>({id:o.id,x:o.x,y:o.y,w:o.w,h:o.h,rot:o.rot||0}));drawEditor();return;}
-  const present=new Set();(selectedElements()).forEach(v=>{if(BOXES[v])present.add(v);});(extraElements()).forEach(v=>{if(BOXES[v])present.add(v);});
-  editorEls.push(Object.assign({id:'photo'},defaultPhotoBox()));present.forEach(id=>{const b=BOXES[id];editorEls.push({id,x:b[0],y:b[1],w:b[2],h:b[3]});});editorEls.push({id:'metadata',x:10,y:80,w:34,h:14});editorEls.push({id:'swatches',x:118,y:76,w:18,h:3});drawEditor();}
+function buildEditor(){
+  editorEls=[];selIdx=-1;
+  if(Array.isArray(window.layout)&&window.layout.length){editorEls=window.layout.map(o=>({id:o.id,x:o.x,y:o.y,w:o.w,h:o.h,rot:o.rot||0}));drawEditor();return;}
+  const present=new Set();extraElements().forEach(v=>{if(BOXES[v])present.add(v);});
+  editorEls.push(Object.assign({id:'photo'},defaultPhotoBox()));
+  present.forEach(id=>{const b=BOXES[id];editorEls.push({id,x:b[0],y:b[1],w:b[2],h:b[3]});});
+  editorEls.push({id:'metadata',x:10,y:80,w:34,h:14});editorEls.push({id:'swatches',x:118,y:76,w:18,h:3});
+  drawEditor();
+}
 function drawBox(el){const x=el.x*SCALE,y=el.y*SCALE,w=el.w*SCALE,h=el.h*SCALE;edCtx.save();const cx=x+w/2,cy=y+h/2;if(el.rot){edCtx.translate(cx,cy);edCtx.rotate(el.rot*Math.PI/180);edCtx.translate(-cx,-cy);}edCtx.strokeStyle='rgba(63,124,196,.95)';edCtx.lineWidth=2*EDK;edCtx.setLineDash([6*EDK,4*EDK]);edCtx.strokeRect(x,y,w,h);edCtx.setLineDash([]);edCtx.restore();}
 function edPt(e){const r=edCv.getBoundingClientRect();const px=(e.clientX-r.left)/r.width*edCv.width,py=(e.clientY-r.top)/r.height*edCv.height;return {px,py,mx:px/SCALE,my:py/SCALE};}
 function liveRender(immediate){if(isAI())return;clearTimeout(liveTimer);const doIt=async()=>{if(!photoData)return;try{const arr=editorEls.map(el=>({id:el.id,x:round(el.x),y:round(el.y),w:round(el.w),h:round(el.h),rot:Math.round(el.rot||0)}));window.layout=arr;const r=await fetch(API+'/generate',{method:'POST',body:buildBaseFD()});const j=await r.json();if(j.front){const im=new Image();im.onload=()=>{realBg=im;drawEditor();};im.src=j.front;}}catch(e){}};if(immediate){doIt();}else{liveTimer=setTimeout(doIt,600);}}
-// 一个滑出画布的拖拽以前会坏在两处，第二处不是观感问题：pointer 事件是按“光标底下是谁”重新定 target 的，
-// 所以在画布外松手时 pointerup 根本到不了这里的处理器，dragMode 一直停在 'move'——之后仅仅是把鼠标
-// 移回画布（没按键）元素就又跟着走了（实测：photo 从 x:2,y:4 被一次悬停移到 x:0,y:2，dragMode 仍为 move）。
-// 另一处是手指/鼠标一越过边界元素就冻住，不再跟手。
-// 这只影响鼠标：同一套手势改用 touchStart/Move/End 复测，把修复完全还原后读数一字不差——
-// 触摸指针由浏览器隐式捕获（cap=true），所以手机上本来就是好的；不要拿这个缺陷去解释手机行为。
-// 显式捕获让整手势的事件都留在画布上（拖出边界也能继续跟手），窗口的 pointerup + pointercancel
-// 兜住“连捕获都丢了”的情况。
 function edEndDrag(){if(!dragMode)return;dragMode=null;liveRender();}
 edCv.addEventListener('pointerdown',e=>{e.preventDefault();try{edCv.setPointerCapture(e.pointerId);}catch(_){}snap();const P=edPt(e);const mx=P.mx,my=P.my;if(selIdx>=0){const el=editorEls[selIdx];const hx=el.x+el.w,hy=el.y+el.h;const rhx=(el.x+el.w/2)*SCALE,rhy=el.y*SCALE-18*EDK;if(Math.hypot(P.px-rhx,P.py-rhy)<14*EDK){dragMode='rotate';return;}if(Math.abs(mx-hx)<1.2&&Math.abs(my-hy)<1.2){dragMode='resize';return;}}for(let i=editorEls.length-1;i>=0;i--){const el=editorEls[i];if(mx>=el.x&&mx<=el.x+el.w&&my>=el.y&&my<=el.y+el.h){selIdx=i;dragMode='move';drawEditor();return;}}selIdx=-1;drawEditor();});
 edCv.addEventListener('pointermove',e=>{if(!dragMode||selIdx<0)return;const P=edPt(e);const mx=P.mx,my=P.my;const el=editorEls[selIdx];if(dragMode==='move'){el.x=Math.max(0,Math.min(150-el.w,mx-el.w/2));el.y=Math.max(0,Math.min(100-el.h,my-el.h/2));}else if(dragMode==='resize'){el.w=Math.max(4,Math.min(150-el.x,mx-el.x));el.h=Math.max(3,Math.min(100-el.y,my-el.y));}else if(dragMode==='rotate'){const cxp=(el.x+el.w/2)*SCALE,cyp=(el.y+el.h/2)*SCALE;el.rot=Math.round(Math.atan2(P.py-cyp,P.px-cxp)*180/Math.PI+90);}drawEditor();});
@@ -925,216 +1129,88 @@ edCv.addEventListener('pointercancel',edEndDrag);
 window.addEventListener('pointerup',edEndDrag);
 edCv.addEventListener('contextmenu',e=>{e.preventDefault();const P=edPt(e);const mx=P.mx,my=P.my;for(let i=editorEls.length-1;i>=0;i--){const el=editorEls[i];if(mx>=el.x&&mx<=el.x+el.w&&my>=el.y&&my<=el.y+el.h){snap();editorEls.splice(i,1);if(selIdx>=i)selIdx--;selIdx=-1;drawEditor();liveRender();return;}}});
 edCv.addEventListener('dblclick',e=>{const P=edPt(e);const mx=P.mx,my=P.my;for(let i=editorEls.length-1;i>=0;i--){const el=editorEls[i];if(mx>=el.x&&mx<=el.x+el.w&&my>=el.y&&my<=el.y+el.h){if(el.id==='metadata'){const t=prompt('明信片标题（回车确定）',$('#title').value);if(t!=null)setTxt('#title',t);drawEditor();}}}});
-// Arrow keys belong to whatever the user is actually focused on. Since the chips became
-// keyboard-reachable, an unguarded handler here moved the canvas element AND flipped the radio the
-// user had just tabbed into, on the same keypress.
 window.addEventListener('keydown',e=>{if(selIdx<0)return;const t=e.target;if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;const el=editorEls[selIdx];const step=e.shiftKey?2:0.5;let moved=false;if(e.key==='ArrowLeft'){el.x-=step;moved=true;}else if(e.key==='ArrowRight'){el.x+=step;moved=true;}else if(e.key==='ArrowUp'){el.y-=step;moved=true;}else if(e.key==='ArrowDown'){el.y+=step;moved=true;}if(moved){e.preventDefault();drawEditor();}});
 function undo(){if(hIdx>0){hIdx--;editorEls=hist[hIdx].map(e=>({...e}));selIdx=-1;drawEditor();liveRender();}}
 function redo(){if(hIdx<hist.length-1){hIdx++;editorEls=hist[hIdx].map(e=>({...e}));selIdx=-1;drawEditor();liveRender();}}
 function bringFront(){if(selIdx>=0){snap();const el=editorEls.splice(selIdx,1)[0];editorEls.push(el);selIdx=editorEls.length-1;drawEditor();liveRender();}}
 function sendBack(){if(selIdx>=0){snap();const el=editorEls.splice(selIdx,1)[0];editorEls.unshift(el);selIdx=0;drawEditor();liveRender();}}
 $('#editUndo').onclick=undo;$('#editRedo').onclick=redo;
-$('#editReset').onclick=()=>{window.layout=null;localStorage.removeItem('ps_state');realBg=null;buildEditor();liveRender(true);$('#status').textContent='已重置为默认布局';};
-$('#editPreview').onclick=async()=>{if(!photoData){alert('请先上传照片');return}const arr=editorEls.map(el=>({id:el.id,x:round(el.x),y:round(el.y),w:round(el.w),h:round(el.h),rot:Math.round(el.rot||0)}));window.layout=arr;setBusy(true);$('#status').textContent='正在渲染真实底图…';try{const fd=buildBaseFD();const r=await fetch(API+'/generate',{method:'POST',body:fd});const j=await r.json();if(j.front){const im=new Image();im.onload=()=>{realBg=im;drawEditor();$('#status').textContent='已加载真实底图';};im.src=j.front;}}catch(e){$('#status').textContent='渲染失败';}finally{setBusy(false);}};
+$('#editReset').onclick=()=>{window.layout=null;realBg=null;buildEditor();liveRender(true);markDirty();$('#status').textContent='已重置为默认布局';};
+$('#editPreview').onclick=async()=>{if(needPhoto())return;const arr=editorEls.map(el=>({id:el.id,x:round(el.x),y:round(el.y),w:round(el.w),h:round(el.h),rot:Math.round(el.rot||0)}));window.layout=arr;setBusy(true);$('#status').textContent='正在渲染真实底图…';try{const fd=buildBaseFD();const r=await fetch(API+'/generate',{method:'POST',body:fd});const j=await r.json();if(j.front){const im=new Image();im.onload=()=>{realBg=im;drawEditor();$('#status').textContent='已加载真实底图';};im.src=j.front;}}catch(e){$('#status').textContent='渲染失败';}finally{setBusy(false);}};
 $('#layFront').onclick=bringFront;$('#layBack').onclick=sendBack;
-$('#editorApply').onclick=()=>{const arr=editorEls.map(el=>({id:el.id,x:round(el.x),y:round(el.y),w:round(el.w),h:round(el.h),rot:Math.round(el.rot||0)}));window.layout=arr;saveState();$('#status').textContent='布局已应用，点「导出」获得最终文件';goTo(4);};
-$('#editBtn').onclick=()=>{if(!photoData){alert('请先上传照片');return;}buildEditor();goTo(5);liveRender(true);};
-$('#editorBack').onclick=()=>goTo(4);
-
-// ---- nav / steps ----
-const stepNodes=Array.from(document.querySelectorAll('.step'));
-function goTo(n){stepNodes.forEach(s=>s.classList.toggle('active',s.dataset.step==String(n)));document.querySelectorAll('.s-step').forEach(b=>b.classList.toggle('active',b.dataset.goto==String(n)));if(String(n)==='5')drawEditor();}
-document.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>goTo(el.dataset.goto));
-// ---- 图生图独立流程 ----
-// (`imgMode` itself is declared with the other page state, above, so loadState() can restore it.)
-function setMode(m){
-  const was=imgMode;
-  imgMode=m;
-  const hide=[document.querySelector('.step[data-step="2"]'),document.querySelector('.step[data-step="5"]'),
-              document.querySelector('.s-step[data-goto="2"]'),document.querySelector('.s-step[data-goto="5"]')];
-  // Stable handles. These two buttons are the ones whose target step changes with the mode, which is
-  // exactly why they must NOT be looked up by that value: `setMode('img2img')` rewrites
-  // `data-goto="2"` to "3", and the very next call could then no longer find the button to put it
-  // back - 「下一步」 skipped the recognition step and 「上一步」 jumped to 1 forever, but only after
-  // the user had tried 图生图 once, which is why it survived every manual check so far.
-  const nxt=document.querySelector('[data-nav="1-next"]');
-  const prv=document.querySelector('[data-nav="3-prev"]');
-  if(m==='img2img'){
-    hide.forEach(x=>x&&x.classList.add('hide'));
-    if(was!=='img2img')imgModePattern=selectedPattern();      // remember it once, not on every re-entry
-    setRadio('patternChips','t2i');
-    refreshBgMode();
-    if(nxt)nxt.dataset.goto='3';
-    if(prv)prv.dataset.goto='1';
-    $('#modeNote').textContent='图生图：上传照片 → 选风格 → 生成（AI 按原图重绘仅换风格）';
-    // 回到上传
-  }else{
-    hide.forEach(x=>x&&x.classList.remove('hide'));
-    // Give the artwork choice back - but only if nothing else touched it meanwhile, because a user who
-    // picked a different pattern while in this mode meant that one.
-    if(was==='img2img'&&imgModePattern&&selectedPattern()==='t2i')setRadio('patternChips',imgModePattern);
-    imgModePattern=null;
-    if(nxt)nxt.dataset.goto='2';
-    if(prv)prv.dataset.goto='2';
-    $('#modeNote').textContent='';
-  }
-}
-// #modeChips is covered by the delegated `change` handler above (it calls setMode there).
-$('#glassA').oninput=(e)=>{$('#glassAV').textContent=e.target.value;};
-$('#glassB').oninput=(e)=>{$('#glassBV').textContent=e.target.value;};
-// The AI-background toggles and the framing ratio are refreshed from the same `change` handler:
-// the label-click listeners that used to live here fired before the radio had settled its state,
-// which is why they needed a setTimeout(0) to read the value the user had just picked.
-refreshBgMode();refreshAiUi();
-
-// ---- is the AI side of the service actually reachable? say so before the first click ----
-function refreshAiUi(){
-  // An AI pattern with no working key still produces a card - the hand-drawn, landscape one. Both
-  // the banner and the framing ratio have to admit that instead of promising a 2:3 portrait.
-  document.querySelectorAll('#patternChips .chip').forEach(ch=>{
-    const ai=ch.querySelector('input').value!=='handdrawn';
-    ch.classList.toggle('chip-dim',ai&&!GEN_OK);
-    ch.title=(!GEN_OK&&ai)?'AI 生图/风格化需要 SILICONFLOW_API_KEY；现在选中会回退成矢量手绘横版卡':'';});
-  syncCropUI();
-}
-function refreshStatus(){
-  fetch(API+'/status').then(r=>r.ok?r.json():null).then(j=>{
-  if(!j)return;
-  AI_OK=!!(j.ai_key&&!j.blocked);
-  GEN_OK=!!(j.models&&j.models.generation);
-  if(j.blocked)showBanner(j.blocked);
-  else if(!j.ai_key)showBanner('未检测到 AI 密钥：识别与 AI 生图不可用，选它们会自动改用矢量手绘引擎（横版 3:2）。在 app.py 同目录新建 .env，写入 SILICONFLOW_API_KEY 或 GLM_API_KEY 后重启服务即可。');
-  else if(j.models&&!j.models.generation)showBanner('AI 识别可用（'+(j.models.vision||'GLM-4V')+'）；AI 生图/风格化需要 SILICONFLOW_API_KEY，相关选项会自动回退矢量手绘。','ok');
-  else if(j.models)showBanner('AI 已就绪：识别 '+(j.models.vision||'-')+' · 风格化 '+(j.models.edit||'-'),'ok');
-  refreshAiUi();
-}).catch(()=>{});}
-refreshStatus();
-
-// ---- dialogs ----
-// The three overlays used to toggle a class by hand, which broke every keyboard expectation at once:
-// their buttons stayed in the tab chain while invisible, Tab walked out of the open dialog into the
-// page behind it, Escape did nothing, and the control that opened the dialog was lost on close. Open
-// and close now go through these two functions, which own the class, the focus and the aria wiring -
-// the same "one door" rule the chip groups and the text fields already follow.
-const OPENER={};
-const FOCUSABLE='button,[href],input:not([type=hidden]),select,textarea,[tabindex]:not([tabindex="-1"])';
-function dialogFocusables(m){
-  return [...m.querySelectorAll(FOCUSABLE)].filter(el=>!el.disabled&&!el.closest('[hidden]'));
-}
-function dismiss(m){
-  // Esc and a backdrop click both mean "cancel", so they run the dialog's own cancel control when it
-  // has one - one owner for the logic instead of a second copy that can drift.
-  const c=m.dataset.cancel&&$('#'+m.dataset.cancel);
-  if(c)c.click();else closeModal(m.id);
-}
-function openModal(id){
-  const m=$('#'+id);if(!m)return null;
-  if(!m.getAttribute('role')){                       // idempotent: a dialog gets reopened many times
-    m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
-    m.tabIndex=-1;
-    const h=m.querySelector('h2,h3');                // focus the box, so a screen reader announces the
-    if(h){if(!h.id)h.id=id+'Title';m.setAttribute('aria-labelledby',h.id);}   // title before any button
-  }
-  OPENER[id]=document.activeElement;
-  m.classList.add('show');
-  m.focus();
-  return m;
-}
-function closeModal(id){
-  const m=$('#'+id);if(!m||!m.classList.contains('show'))return;
-  m.classList.remove('show');
-  const op=OPENER[id];OPENER[id]=null;
-  // hand focus back to whoever asked for the dialog, or the keyboard user is dropped at the top of
-  // the document and has to tab through the whole page again to find their place.
-  if(op&&op.focus&&document.contains(op))op.focus();
-}
-window.addEventListener('keydown',e=>{
-  const m=document.querySelector('.modal.show');if(!m)return;
-  if(e.key==='Escape'){e.preventDefault();dismiss(m);return;}
-  if(e.key!=='Tab')return;
-  const f=dialogFocusables(m);if(!f.length)return;
-  const first=f[0],last=f[f.length-1],a=document.activeElement;
-  // the box itself counts as "before the first control", so Shift+Tab from it wraps to the end
-  if(e.shiftKey&&(a===first||a===m)){e.preventDefault();last.focus();}
-  else if(!e.shiftKey&&a===last){e.preventDefault();first.focus();}
-});
-document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
-  if(e.target===m)dismiss(m);                        // only the dark backdrop, never the card
-}));
-
-// ---- crop ----
-// The framing box has to match the card the server will actually draw: the vector engine always
-// lays out 150x100mm, while the AI pattern honours `orient` and turns a portrait photo into a
-// 100x150mm card. Framing 2:3 and getting 3:2 back silently chops away what the user picked.
-function portraitCard(){
-  const o=selectedOrient();
-  if(o==='landscape')return false;
-  if(!isAI()||!AI_OK||!GEN_OK)return false;     // the vector fallback is landscape by design
-  return o==='portrait'||(o==='auto'&&photoAspect>1);
-}
-function cropAr(){return portraitCard()?(100/150):1.5;}
-function cropLabel(){return portraitCard()?'2:3':'3:2';}
-function syncCropUI(){const b=$('#cropBtn');if(b)b.textContent='裁剪取景('+cropLabel()+')';
-  const t=$('#cropTitle');if(t)t.textContent='裁剪取景（'+cropLabel()+'，拖动框选重点）';
-  const p=$('#specPill');if(p)p.textContent=portraitCard()?'竖版 100×150mm（2:3）':'横版 150×100mm（3:2）';
-  // A restored draft carries a crop but no photo: photoImg is null until an upload lands, and
-  // dereferencing it here threw and killed every line of initialisation below it.
-  if(photoImg&&photoCrop&&cropFocus)photoCrop=cropBoxFor(cropFocus.x,cropFocus.y);}
-function cropBoxFor(fx,fy){if(!photoImg)return null;const W=photoImg.naturalWidth,H=photoImg.naturalHeight;const AR=cropAr();let cw,ch;if(W/H>AR){cw=H*AR;ch=H;}else{cw=W;ch=W/AR;}cw/=cropZoom;ch/=cropZoom;let left=fx*W-cw/2;left=Math.max(0,Math.min(W-cw,left));let top=fy*H-ch/2;top=Math.max(0,Math.min(H-ch,top));return {x:left/W,y:top/H,w:cw/W,h:ch/H};}
-function openCrop(){if(!photoImg){alert('请先上传照片');return;}if(!cropFocus)cropFocus={x:.5,y:.5};syncCropUI();openModal('cropModal');drawCrop();}
-function drawCrop(){if(!photoImg)return;const cv=$('#cropCv'),ctx=cv.getContext('2d');const fitted=fitCanvas(cv,0.62);if(!fitted){cv.width=Math.max(240,cv.width);cv.height=Math.round(cv.width*0.62);}const CDK=fitted||1,cw=cv.width,ch=cv.height;const W=photoImg.naturalWidth,H=photoImg.naturalHeight;const sc=Math.min(cw/W,ch/H*0.9),dw=W*sc,dh=H*sc,ox=(cw-dw)/2,oy=(ch-dh)/2;ctx.fillStyle='#111';ctx.fillRect(0,0,cw,ch);ctx.drawImage(photoImg,ox,oy,dw,dh);const cb=cropBoxFor(cropFocus.x,cropFocus.y);const bx=ox+cb.x*W*sc,by=oy+cb.y*H*sc,bw=cb.w*W*sc,bh=cb.h*H*sc;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,cw,by);ctx.fillRect(0,by+bh,cw,ch-by-bh);ctx.fillRect(0,by,bx,bh);ctx.fillRect(bx+bw,by,cw-bx-bw,bh);ctx.strokeStyle='#4fd1ff';ctx.lineWidth=2*CDK;ctx.strokeRect(bx,by,bw,bh);const fx=ox+cropFocus.x*W*sc,fy=oy+cropFocus.y*H*sc;ctx.beginPath();ctx.moveTo(fx-8*CDK,fy);ctx.lineTo(fx+8*CDK,fy);ctx.moveTo(fx,fy-8*CDK);ctx.lineTo(fx,fy+8*CDK);ctx.stroke();}
-function cropPointer(e){const cv=$('#cropCv'),rect=cv.getBoundingClientRect();const px=(e.clientX-rect.left)/rect.width,py=(e.clientY-rect.top)/rect.height;const cw=cv.width,ch=cv.height,W=photoImg.naturalWidth,H=photoImg.naturalHeight;const sc=Math.min(cw/W,ch/H*0.9),dw=W*sc,dh=H*sc,ox=(cw-dw)/2,oy=(ch-dh)/2;cropFocus.x=Math.max(0,Math.min(1,(px*cw-ox)/dw));cropFocus.y=Math.max(0,Math.min(1,(py*ch-oy)/dh));drawCrop();}
-// Framing used to follow a bare hover, so merely moving the mouse across the canvas moved the box.
-let cropDown=false;
-$('#cropBtn').onclick=openCrop;
-// 取景框以前只靠窗口级 pointerup 收尾，手势不会残留（松手总能收到），但鼠标一拖出画布框就定住；同一手捕获。
-$('#cropCv').addEventListener('pointerdown',e=>{cropDown=true;try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}cropPointer(e);});
-$('#cropCv').addEventListener('pointermove',e=>{if(cropDown)cropPointer(e);});
-$('#cropCv').addEventListener('pointercancel',()=>{cropDown=false;});
-window.addEventListener('pointerup',()=>{cropDown=false;});
-$('#cropZoom').oninput=(e)=>{cropZoom=parseFloat(e.target.value);$('#cropZoomVal').textContent=cropZoom.toFixed(1)+'×';drawCrop();};
-$('#cropOk').onclick=()=>{const b=cropBoxFor(cropFocus.x,cropFocus.y);if(b){photoCrop=b;saveState();}$('#cropHint').textContent='已取景（可再次调整）';closeModal('cropModal');};
-$('#cropCancel').onclick=()=>closeModal('cropModal');
-// setTxt, not a bare `.value=`: the slider's own `input` handler owns cropZoom, its readout and the
-// repaint. Writing all three by hand here worked, but it meant a second copy of that logic that any
-// future change to the handler would silently miss - and the page-wide rule is now "a programmatic
-// write goes through the event the user's write would have fired".
-$('#cropReset').onclick=()=>{cropFocus={x:.5,y:.5};setTxt('#cropZoom',1);photoCrop=null;saveState();drawCrop();};
+$('#editorApply').onclick=()=>{const arr=editorEls.map(el=>({id:el.id,x:round(el.x),y:round(el.y),w:round(el.w),h:round(el.h),rot:Math.round(el.rot||0)}));window.layout=arr;saveState();markDirty();closeModal('editorModal');$('#status').textContent='布局已应用，可重新生成或直接下载';};
+function closeEditor(){selIdx=-1;realBg=null;closeModal('editorModal');}
+$('#editorBack').onclick=closeEditor;
+$('#editBtn').onclick=()=>{
+  if(needPhoto())return;
+  if(isAI()){$('#status').textContent='AI 图案不支持版式微调，请先把图案方式切回「手绘水彩」';return;}
+  buildEditor();
+  openModal('editorModal');
+  requestAnimationFrame(()=>{fitEditor();drawEditor();});
+};
 
 // ---- view zoom ----
-// The previews are clickable, so they have to be reachable by keyboard too: tabindex + Enter/Space, and
-// the click handler opens through openModal() so closing can return focus to the same thumbnail.
 document.querySelectorAll('#img-front,#img-back').forEach(im=>{
   const open=()=>{if(im.src){$('#viewImg').src=im.src;openModal('viewModal');}};
   im.onclick=open;
   im.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
 });
-$('#viewModal').addEventListener('click',()=>closeModal('viewModal'));   // "click anywhere to close"
+$('#viewModal').addEventListener('click',()=>closeModal('viewModal'));
 
 // ---- help ----
 function showHelp(){openModal('helpModal');}
 function hideHelp(){closeModal('helpModal');}
 $('#helpBtn').onclick=showHelp;
 $('#closeHelp').onclick=hideHelp;
-// 不再自动弹出引导（避免遮挡页面），仅在点按钮时显示；所以也不再有「下次不再提示」开关
 
-// ---- peak countdown ----
-function bejPeak(d,s){return d>=1&&d<=5&&((s>=32400&&s<43200)||(s>=50400&&s<64800));}
-function updatePeak(){const lab=$('#peakLabel');if(!lab)return;const now=new Date();const bj=new Date(now.getTime()+now.getTimezoneOffset()*60000+8*3600000);const d=bj.getDay(),s=bj.getHours()*3600+bj.getMinutes()*60+bj.getSeconds();const peak=bejPeak(d,s);let dd=d,ss=s,steps=0;while(steps<7*86400){steps++;ss+=1;if(ss>=86400){ss=0;dd=(dd+1)%7;}if(bejPeak(dd,ss)!==peak)break;}lab.textContent=peak?'高价时段':'可劲儿用吧';const hint=$('#peakHint');if(hint)hint.classList.toggle('peak',peak);const days=Math.floor(steps/86400),hrs=Math.floor((steps%86400)/3600),min=Math.floor((steps%3600)/60),sec=steps%60;const pad=n=>String(n).padStart(2,'0');const cd=days>0?`${days}天 ${pad(hrs)}:${pad(min)}:${pad(sec)}`:`${pad(hrs)}:${pad(min)}:${pad(sec)}`;const pc=$('#peakCount');if(pc)pc.textContent='距下一时段 '+cd;}
-function peakInit(){updatePeak();setInterval(updatePeak,1000);}
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',peakInit);}else{peakInit();}
+// ---- step anchors: aria-current follows the section being read ----
+// The sidebar preview is sticky on desktop, so it is on screen from the start and an observer would
+// mark step 3 active before the user has uploaded anything. Only the two control sections drive the
+// highlight there; on narrow screens the preview section itself does, once it scrolls into view.
+let stepLinks=[];
+function setStepActive(n){
+  stepLinks.forEach((it,i)=>{if((i+1)===n)it.a.setAttribute('aria-current','step');else it.a.removeAttribute('aria-current');});
+}
+function initStepNav(){
+  stepLinks=$$('#stepNav a').map(a=>({a,sec:document.getElementById((a.getAttribute('href')||'').replace('#','')),n:parseInt(a.dataset.step||'0',10)})).filter(it=>it.sec).sort((x,y)=>x.n-y.n);
+  if(!stepLinks.length)return;
+  const narrow=()=>window.innerWidth<=1024;
+  let raf=0;
+  function update(){
+    raf=0;
+    const anchorY=window.scrollY+window.innerHeight*0.22;
+    let n=1;
+    stepLinks.forEach(it=>{
+      if(it.sec.id==='sec-generate'&&!narrow())return;
+      if(it.sec.getBoundingClientRect().top+window.scrollY<=anchorY)n=it.n;
+    });
+    if(narrow()){
+      const g=$('#sec-generate');
+      if(g&&g.getBoundingClientRect().top<=window.innerHeight*0.3)n=3;
+    }
+    setStepActive(n);
+  }
+  stepLinks.forEach(it=>it.a.addEventListener('click',()=>setStepActive(it.n)));
+  window.addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(update);},{passive:true});
+  window.addEventListener('resize',update);
+  update();
+}
 
-// ---- radio chip groups ----
-// Deliberately EMPTY. These chips used to carry a per-label `onclick` that set `input.checked=true`
-// itself; the browser then found the radio already checked when it ran the label's activation
-// behaviour and dispatched no `change` at all. The highlight still looked right (this handler painted
-// it), but everything hung on `change` - refreshBgMode / refreshAiUi / setMode / queueSave - silently
-// never ran for mouse users, so the AI sub-switches froze and the last choice was never persisted.
-// State comes from the delegated `change` handler near the top; do not paint `.on` from a click again.
+// ---- save/apply wiring ----
+$('#glassA').oninput=(e)=>{$('#glassAV').textContent=e.target.value;};
+$('#glassB').oninput=(e)=>{$('#glassBV').textContent=e.target.value;};
 
-// ---- tips carousel ----
-const TIPS=['上传照片后点「识别图片元素」，AI 会读出照片里的元素','可勾选/取消元素来筛选构图；也可以点右上角模板一键套用','AI生图会用照片主题生成高质量艺术背景，出图约5-20秒','已生成后，点「换一张AI场景」可更换 AI 背景','导出：高清PNG(600dpi)/打印版PDF(出血)/A4拼版/手机壁纸/矢量SVG','双击画布里的标题可修改文字','手绘/AI生图/AI背景/实景拼贴四种图案方式，都走同一套国标排版','高峰时段为工作日9-12点、14-18点（其余可劲儿用）'];
-let ti=0;setInterval(()=>{$('#tip').textContent=TIPS[ti];ti=(ti+1)%TIPS.length;},6000);
+// ---- boot ----
+loadState();
+booting=false;                    // from here on, a change is something the user did
+renderDrafts();
+refreshStatus();
+refreshBgMode();
+refreshAiUi();
+updateStyleNote();
+refreshDownloads();
+refreshGenButton();
+initStepNav();
 </script>
 </body>
 </html>

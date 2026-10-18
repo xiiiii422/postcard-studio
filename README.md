@@ -13,17 +13,18 @@
 
 ## 功能
 
-- **5 步向导**：上传照片 → 识别元素（AI 可选）→ 选风格 → 生成 → 画布编辑。
+- **3 个区块**：上传照片 → 选风格/图案 → 预览并下载；桌面左侧控制 + 右侧粘性预览，移动端单列。
 - **两套渲染引擎**：
   - 位图引擎（Pillow）：按 DPI 真实高清渲染，适合 PNG / PDF 印刷导出；
   - 矢量引擎（纯 PIL + numpy）：把照片量化成色块并追踪轮廓，生成可按层编辑的 SVG 水彩画区。
 - **8 套场景模板**、19 个内置手绘元素、10 种纸张、标题字体 / 粗斜体 / 滤镜 / 圆角 / 照片增强。
-- **AI 可选**：SiliconFlow 视觉识别、img2img 风格化、文生图背景；没有密钥时自动降级到
-  纯本地矢量引擎，页面会明确提示，不会崩溃。
+- **AI 可选**：SiliconFlow img2img 风格化与文生图背景；没有密钥时自动降级到纯本地矢量引擎，
+  页面会明确提示，不会崩溃。
 - **导出**：高清 PNG（600dpi）、打印版 PDF（3mm 出血 + 裁剪线）、A4 一张印 2 张、
   CMYK 印前 PDF、手机壁纸、矢量 SVG（ZIP 内含正/背面）、全套 ZIP 打包。
-- **画布编辑**：拖动 / 缩放 / 旋转 / 置顶置底 / 撤销重做；参数与作品存档写入 localStorage。
-- **拍摄日期**：从原始 JPEG 读取 EXIF `DateTimeOriginal`，自动印在卡片上。
+  **SVG 跟随当前图案**：AI 图案会先把图生图结果矢量化为画区，本地水彩则直接矢量化原图。
+- **画布编辑**：拖动 / 缩放 / 旋转 / 置顶置底 / 撤销重做；作为"高级微调"入口，不占主流程。
+- **拍摄日期**：从原始 JPEG 读取 EXIF `DateTimeOriginal`，自动预填日期输入并可印在卡片上。
 
 ## 快速开始（Windows）
 
@@ -57,23 +58,22 @@ python app.py
 
 ```powershell
 copy .env.example .env
-# 编辑 .env：识别至少配一个 key；AI 生图还需要 SILICONFLOW_API_KEY
+# 编辑 .env，填入 SILICONFLOW_API_KEY
 ```
 
-- **识别（视觉）**：优先 SiliconFlow `Qwen/Qwen3-VL-8B-Instruct`（免费额度）；没有时用
-  GLM `glm-4v-flash`（`GLM_API_KEY`）；最后回退 DeepSeek 视觉（`DEEPSEEK_API_KEY`）。
-  GLM-4V 和 DeepSeek 也能单独启用识别，不需要 SiliconFlow。
-- **风格化 / 背景生成**：需要 SiliconFlow（`Qwen/Qwen-Image-Edit-2509`、`Kwai-Kolors/Kolors`、
-  `Tongyi-MAI/Z-Image-Turbo`）。没有 SiliconFlow 时这两个入口会自动回退矢量手绘，并在页面提示。
+AI 只用于**图像生成**，不再做元素识别：
 
-没有可用密钥时所有 AI 入口自动跳过，识别/生成改用本地引擎；失败原因会写入响应的
-`ai_note` / `note` 并显示在页面上。`GET /status` 的 `models.generation` 会告诉前端
-当前是否支持 AI 生图。
+- **AI 风格化**（img2img）：`Qwen/Qwen-Image-Edit-2509`；
+- **AI 背景**（text-to-image）：`Kwai-Kolors/Kolors` 或 `Tongyi-MAI/Z-Image-Turbo`；
+- 实景拼贴（zine）也走 img2img；
+- 没有 SiliconFlow key 时，AI 图案选项会禁用，所有导出自动使用本地矢量引擎，并在页面提示。
+
+`GET /status` 的 `models.generation` 告诉前端当前是否支持 AI 生图。
 
 ## 项目结构
 
 ```
-app.py                  Flask + waitress 后端（/analyze /generate /export /bundle）
+app.py                  Flask + waitress 后端（/generate /export /bundle）
 index.html              单文件前端（无框架、无构建）
 make_postcard.py        位图渲染引擎（构图、元素、文字、PDF、CMYK、A4 拼版）
 make_postcard_svg.py    矢量 SVG 引擎（照片量化、轮廓追踪、evenodd 孔洞、水彩画区）
@@ -93,8 +93,8 @@ fonts/README.md         字体（MiSans 未随仓库分发）说明
 ## 测试
 
 ```powershell
-python selftest.py --quick   # 103 项，约 30s
-python selftest.py           # 105 项，完整（含 600dpi / 并发压力）
+python selftest.py --quick   # 100 项，约 30s
+python selftest.py           # 102 项，完整（含 600dpi / 并发压力）
 ```
 
 自检不需要 AI 密钥，也不需要先启服务：它会在 5199 端口起一个进程内实例
@@ -114,14 +114,13 @@ tone / EDGE 多边形数与文件大小。当前基线见 [docs/BENCHMARKS.md](d
 | 方法 | 端点 | 说明 |
 |---|---|---|
 | GET | `/` | 前端页面 |
-| GET | `/status` | `{ai_key, blocked, models}` |
-| POST | `/analyze` | 照片 → `{elements, colors, title, date, style, note}` |
+| GET | `/status` | `{ai_key, blocked, models}`（models.generation 表示 AI 生图是否可用） |
 | POST | `/generate` | 照片 + 参数 → 正/背面 base64 预览 |
 | POST | `/export` | `kind=front-hi/front-pdf/back-hi/back-pdf/sheet-pdf/sheet-pdf-back/pngset/wallpaper/print-cmyk/svg` |
 | POST | `/bundle` | 全套 ZIP（PNG ×2 + 打印 PDF ×2 + A4 拼版 + 使用说明） |
 
 参数白名单见 `app.py` 的 `OPTION_KEYS`；`date` 为新增可选字段（前端从 EXIF 自动填充）。
-`/export kind=svg` 返回 **ZIP**（内含 `postcard-front.svg` / `postcard-back.svg`）。
+`/export kind=svg` 返回 **ZIP**（内含 `postcard-front.svg` / `postcard-back.svg`；AI 图案会把图生图结果矢量化，若 AI 不可用则回退原图并附带 `ai_note.txt`）。
 
 ## 设计说明与已知限制
 
@@ -151,5 +150,4 @@ tone / EDGE 多边形数与文件大小。当前基线见 [docs/BENCHMARKS.md](d
 MIT，见 [LICENSE](LICENSE)。
 
 第三方说明：MiSans 字体不随仓库分发（见 `fonts/README.md`）；仓库不包含任何第三方
-技能文档、示例照片或用户上传内容。AI 服务由 SiliconFlow / DeepSeek 提供，使用需遵守
-各自服务条款。
+技能文档、示例照片或用户上传内容。AI 服务由 SiliconFlow 提供，使用需遵守各自服务条款。
