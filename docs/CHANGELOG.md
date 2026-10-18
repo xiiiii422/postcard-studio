@@ -49,6 +49,7 @@
   DeepSeek 视觉作为最后兜底；AI 生图仍需要 SiliconFlow。`/status` 增加
   `models.generation` / `vision_provider`，前端会区分"识别可用"和"生图可用"。
 - `POSTCARD_NO_AI=1` 可让自检/CI 忽略本地 `.env` 密钥，保证测试可复现。
+- 修复：矢量手绘模式不再误报 "未配置 SILICONFLOW_API_KEY / 已回退"；只有真正选 AI 图案时才提示。
 - 增加 `.gitignore`、`.gitattributes`、MIT LICENSE；回归脚本与历史日志归档进 `docs/` / `scripts/`。
 
 ### 未改 / 已知限制

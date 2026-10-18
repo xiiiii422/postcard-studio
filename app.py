@@ -516,6 +516,8 @@ def get_ai_image(r, photo, desc=""):
                  bg_mode 'photo'  : same img2img restyle as t2i."""
     pattern = r.get("pattern") or "handdrawn"
     note_ai(None)
+    if pattern == "handdrawn":
+        return None                     # pure vector engine: no AI call and no "AI unavailable" note
     # Guard here, not only inside safe_t2i: the aibg/keywords branch below calls free_gen() directly,
     # which used to POST with an empty "Bearer " and come back 401. That burned the throttle on a call
     # that cannot succeed and then recorded "密钥被服务方拒绝，请在 .env 填入有效 key" - a lie, since the
@@ -523,7 +525,7 @@ def get_ai_image(r, photo, desc=""):
     if _AI_BLOCKED[0]:
         return note_ai(_AI_BLOCKED[0])
     if not T2I_KEY:
-        return note_ai("未配置 AI 密钥（环境变量或 .env 里的 SILICONFLOW_API_KEY），已改用矢量手绘引擎。")
+        return note_ai("未配置 SILICONFLOW_API_KEY：AI 生图/风格化不可用，已改用矢量手绘引擎。")
     genKey, fresh, orient = r.get("genkey"), r.get("fresh"), (r.get("orient") or "auto")
     if pattern == "zine":
         return safe_t2i(zine_prompt(r, desc), genKey, photo, fresh, orient)
