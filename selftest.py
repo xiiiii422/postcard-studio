@@ -29,7 +29,38 @@ def check(name, cond, extra=""):
 from PIL import Image, ImageOps, ImageChops, ImageDraw, ImageFilter
 import make_postcard as M
 
-photo = ImageOps.exif_transpose(Image.open(os.path.join(ROOT, "photo-A.img")).convert("RGB"))
+photo = None
+PHOTO_BYTES = b""
+
+
+def _bench_photo():
+    """The repo does not ship the author's sample photos. If photo-A.img is absent (fresh
+    clone), build a synthetic landscape so the self-test is still fully runnable."""
+    path = os.path.join(ROOT, "photo-A.img")
+    if os.path.isfile(path):
+        raw = open(path, "rb").read()
+        return ImageOps.exif_transpose(Image.open(io.BytesIO(raw)).convert("RGB")), raw
+    im = Image.new("RGB", (900, 600))
+    d = ImageDraw.Draw(im)
+    # misty pale sky + a dark ridge: the same tonal range as the author's benchmark A,
+    # so the pixel-level checks below stay meaningful without shipping the photo.
+    for y in range(600):
+        t = y / 600.0
+        d.line([(0, y), (900, y)],
+               fill=(int(214 + 20 * t), int(220 + 16 * t), int(236 + 10 * t)))
+    d.ellipse([620, 110, 690, 180], fill=(249, 249, 252))
+    d.polygon([(0, 600), (0, 400), (150, 330), (280, 410), (420, 320), (560, 420),
+               (700, 340), (820, 390), (900, 360), (900, 600)], fill=(52, 68, 96))
+    d.polygon([(0, 600), (0, 470), (180, 420), (340, 500), (520, 440), (700, 510),
+               (900, 460), (900, 600)], fill=(38, 52, 78))
+    d.polygon([(420, 320), (470, 355), (430, 365)], fill=(232, 236, 244))
+    d.rectangle([0, 540, 900, 600], fill=(30, 44, 66))
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=88)
+    return im, buf.getvalue()
+
+
+photo, PHOTO_BYTES = _bench_photo()
 print("Pillow", __import__("PIL").__version__, "| Python", sys.version.split()[0], "| photo", photo.size)
 
 t = time.time(); pal = M.sample_palette(photo); dt = time.time() - t
@@ -575,7 +606,6 @@ FIELDS = {"title": "烟雾 & 测试", "number": "N° 01", "use_ai": "0", "want_b
           "filt": "none", "rounded": "1", "show_date": "1", "swatches": "1", "enhance": "1",
           "pattern": "handdrawn", "orient": "auto", "elements": '["mountain","clouds","sun"]',
           "extra": "[]", "tags": "", "glass_a": "60", "glass_b": "3", "desc": ""}
-PHOTO_BYTES = open(os.path.join(ROOT, "photo-A.img"), "rb").read()
 
 
 def multipart(fields, filebytes):

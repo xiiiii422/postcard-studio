@@ -42,6 +42,7 @@
 
 - `selftest.py` 新增 6 条断言：背面单次转义、控制字符 XML 合法、孔洞保留与 evenodd、极端长宽比网格受限、暗图配色兜底。
 - 自检数量：`--quick` 103 项、完整 105 项，全部通过。
+- `selftest.py` 不再依赖作者的示例照片：全新克隆没有 `photo-A.img` 时会自动生成一张合成样片。
 - 自检端口可用 `POSTCARD_TEST_PORT` 覆盖，避免并行跑测试时 5199 端口争用。
 - `find-python.ps1` 探测 5 个依赖（含 numpy）并尝试 `import app`；`.python-path` 用 UTF-8；解释器按版本号降序。
 - 增加 `.gitignore`、`.gitattributes`、MIT LICENSE；回归脚本与历史日志归档进 `docs/` / `scripts/`。
